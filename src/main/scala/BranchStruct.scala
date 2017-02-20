@@ -1,6 +1,6 @@
 /**
   * Created by ilyas on 2017-02-18.
-  * Immutable
+  * Mutable
   */
 class BranchStruct(_l: Seq[String], _tknzs:Seq[String], _tks:Seq[TokenStruct]) {
     val lines : Seq[String] = _l
@@ -31,6 +31,8 @@ class BranchStruct(_l: Seq[String], _tknzs:Seq[String], _tks:Seq[TokenStruct]) {
         )
         new BranchStruct(lines :+ str, tokenizers, newTokens)
     }
+
+    override def toString: String = Seq(tokenStructs).flatMap(_.zipWithIndex).sortBy(_._2).map(_._1).mkString("")
 }
 
 object BranchStruct {

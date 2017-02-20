@@ -7,4 +7,5 @@ object Config {
     val maxBranches: Int = 10
     val branchingSeed: Double = 0.1
     val specChars: Regex = "[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\]".r
+    val inc : Int = 10
 }

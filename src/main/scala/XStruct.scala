@@ -28,4 +28,6 @@ class XStruct {
     def computeOutlierScore(str: String): Double = {
         0.0
     }
+
+    override def toString: String = branches.map(_.toString).mkString("|")
 }
