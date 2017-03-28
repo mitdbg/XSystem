@@ -9,37 +9,12 @@ object Config {
     val maxBranches: Int = 10
     val branchingSeed: Double = 0.1
     val specChars: Regex = "[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\]".r
-    val uppercaseChars: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    val lowercaseChars: String = "abcdefghijklmnopqrstuvwxyz"
-    val numbers: String = "0123456789"
+    val uppercaseChars: Set[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray.toSet
+    val lowercaseChars: Set[Char] = "abcdefghijklmnopqrstuvwxyz".toCharArray.toSet
+    val numbers: Set[Char] = "0123456789".toCharArray.toSet
     val inc : Int = 10
     val capturePct: Double = 0.85
 }
-
-// Class for representing char classes in strings
-sealed trait CharClass {
-    def rep: String
-    def isClass: Boolean
-    def toXClass: XClass
-    def domain: String
-    def baseHist: Map[Char, Long] = domain.toCharArray.map((c:Char) => (c, 0:Long)).toMap
-}
-case object UCC extends CharClass { val (rep, isClass, toXClass, domain) = ("\\W", true, X_UCC, Config.uppercaseChars) }
-case object LCC extends CharClass { val (rep, isClass, toXClass, domain) = ("\\w", true, X_LCC, Config.lowercaseChars) }
-case object NUM extends CharClass { val (rep, isClass, toXClass, domain) = ("\\d", true, X_NUM, Config.numbers ) }
-case class SPC(c: String) extends CharClass {
-    assert(Config.specChars.findAllIn(c.toString).nonEmpty)
-    val (rep, isClass, toXClass, domain) = (c, false, X_SPEC(c), c)
-}
-
-// Class for representing char classes in XStructures
-sealed trait XClass { def rep: String }
-case object X_UCC extends XClass { val rep = "\\W" }
-case object X_LCC extends XClass { val rep = "\\w" }
-case object X_NUM extends XClass { val rep = "\\d" }
-case class X_SPEC(c: String) extends XClass { val rep: String = c.toString }
-case class X_OR(cs: List[String]) extends XClass { val rep: String = "(" + cs.mkString("|") + ")" }
-
 
 object Utils {
     // Returns the character class of a given character
@@ -51,9 +26,9 @@ object Utils {
     }
 
     // Performs Chi-Square test expecting a uniform distribution
-    def significant(observed: Seq[Long]): Boolean = if (observed.length < 2) false else {
-        val expectedFreq: Double = observed.sum.toDouble/observed.length
-        val expected: Array[Double] = (1 to observed.length).map(_ => expectedFreq).toArray
-        new ChiSquareTest().chiSquareTest(expected, observed.toArray,0.01)
-    }
+    def significant(observed: Seq[Long]): Boolean = if (observed.length < 2) false else
+        new ChiSquareTest().chiSquareTest(Array.fill(observed.length)(1.0), observed.toArray,0.01)
+
+    // Potentially clean up later?
+    def asciiMap: Map[Char,Long] = (0 to 256).map(i => (i.toChar,0:Long)).toMap
 }

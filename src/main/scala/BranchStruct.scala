@@ -18,10 +18,11 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
     }
 
     def scoreString(str: String): Double = {
-        0.0
+        val tokens = tokenizeString(str).padTo(tokenStructs.length,"")
+        tokens.zip(tokenStructs).map((x: (String, TokenStruct)) => x._2.scoreToken(x._1)).sum/str.length
     }
 
-
+    // Tokenize a string based on tokenizers
     def tokenizeString(str: String): Array[String] = {
         val suffixes = tokenizers.scanLeft(str)((s: String, t: String) => s.split(t).tail.mkString(t))
         // Should be same length as tokenizers: "A/B/C$" -> "A/B/C$", "B/C$","C$" (no "" because of the init)
