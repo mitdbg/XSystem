@@ -11,4 +11,6 @@ libraryDependencies ++= Seq(
     "org.scala-saddle" %% "saddle-core" % "1.3.+"
 )
 
+libraryDependencies += "org.apache.commons" % "commons-math3" % "3.3"
+
 scalaVersion := "2.11.1"

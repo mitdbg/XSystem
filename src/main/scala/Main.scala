@@ -5,6 +5,17 @@ object Main {
     def main(args: Array[String]): Unit = {
         val x = new XStruct()
         x.addNewLines(Array("11/06/1999"))
+        x.addNewLines(Array("21/06/1999"))
+        x.addNewLines(Array("21/06/1999"))
+        x.addNewLines(Array("11/06/1999"))
+        x.addNewLines(Array("11/06/1999"))
+        x.addNewLines(Array("21/06/1999"))
+        x.addNewLines(Array("21/06/1999"))
+        x.addNewLines(Array("11/06/1999"))
+        x.addNewLines(Array("11/06/1999"))
+        x.addNewLines(Array("21/06/1999"))
+        x.addNewLines(Array("21/06/1999"))
+        x.addNewLines(Array("11/06/1999"))
         println(x.toString)
     }
 

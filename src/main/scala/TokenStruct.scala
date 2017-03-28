@@ -10,7 +10,8 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
                   _history : Seq[Double] = Seq(),
                   _stdDev : Double = 100.0,
                   _archive : Seq[Double] = Seq()
-                 ) {
+                 )
+{
     private final val symbolStructs : Seq[SymbolStruct] = _symbolStructs
     private final val doneAdding : Boolean = _doneAdding
     private final val history : Seq[Double] = _history
