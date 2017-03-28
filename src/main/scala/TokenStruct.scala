@@ -30,7 +30,7 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
         val _history : Seq[Double] = history :+ tokenScore
         val _stdDev : Double = if (_history.length % Config.inc == 0) Vec(_history : _*).stdev else stdDev
         val _doneAdding : Boolean = neededSampleSize(_stdDev) < _history.length
-        val _archive = if (_doneAdding) archive ++ _history else _archive
+        val _archive = if (_doneAdding) archive ++ _history else archive
         new TokenStruct(_symbolStructs, _doneAdding, _history, _stdDev, _archive)
     }
 
