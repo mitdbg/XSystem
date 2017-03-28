@@ -24,8 +24,7 @@ class XStruct {
     def findRightBranch(str: String): Int = if (branches.isEmpty) newBranch(str) else {
         val scores: IndexedSeq[(Int,Double)] = branches.indices.map((x: Int) => (x, branches(x).scoreString(str)))
         val minPair : (Int, Double) = scores.minBy(_._2)
-        minPair._1
-        //if (minPair._2 < branchingThreshold) minPair._1 else newBranch(str)
+        if (minPair._2 < branchingThreshold) minPair._1 else newBranch(str)
     }
 
     // Outlier score for a given string

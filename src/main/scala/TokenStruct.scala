@@ -18,6 +18,9 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
     private final val stdDev : Double = _stdDev
     val archive : Seq[Double] = _archive
 
+    val scoreSoFar: Double = archive.sum/archive.length
+    val representation: Seq[XClass] = symbolStructs.map(_.representation)
+
     private def neededSampleSize(std: Double): Double = Math.pow(1.96*std/0.5, 2.0)
 
     def learnToken(token: String): TokenStruct = if (doneAdding) this else {
@@ -35,7 +38,13 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
         new TokenStruct(_symbolStructs, _doneAdding, _history, _stdDev, _archive)
     }
 
-    def scoreSoFar(): Double = archive.sum/archive.length
+    def scoreToken(token: String): Double = token.toCharArray.zip(symbolStructs).map {
+        (cs: (Char, SymbolStruct)) => cs._2.scoreChar(cs._1)
+    }.sum + (token.length - symbolStructs.length) match {
+        case 0 => 0
+        case x if x > 0 => token.length - symbolStructs.length
+        case _ => 1.0
+    }
 
-    override def toString: String = symbolStructs.map(_.toString).mkString("")
+    override def toString: String = representation.map(_.toString).mkString("")
 }
