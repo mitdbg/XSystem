@@ -1,6 +1,8 @@
+import org.saddle._
+
 /**
   * Created by ilyas on 2017-02-18.
-  * Mutable
+  * Immutable
   */
 class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStruct]) {
     val lines : Array[String] = _l
@@ -39,6 +41,21 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
             (x: (TokenStruct, String)) => x._1.learnToken(x._2)
         )
         new BranchStruct(lines :+ str, tokenizers, newTokens)
+    }
+
+    // Generate random strings from this branch
+    def generateRandomStrings(n: Int): List[String] = List()
+
+    // Check if this branch contains another branch
+    def supersetScore(other: BranchStruct): Double = {
+        var stdev: Double = Double.MaxValue
+        var allScores: List[Double] = List()
+
+        while (allScores.length < Config.neededSampleSize(stdev)) {
+            allScores = allScores ++ other.generateRandomStrings(Config.inc).map(s => scoreString(s))
+            stdev = Vec(allScores : _*).stdev
+        }
+        allScores.sum/allScores.length
     }
 
     override def toString: String = (tokenStructs.map(_.toString), tokenizers).zipped.map(_ + _).mkString("")

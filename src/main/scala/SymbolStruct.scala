@@ -1,7 +1,7 @@
 class SymbolStruct(_charHist: Map[Char,Long], _ccHist: Map[CharClass, List[Char]], _totalCount: Long) {
     val charHistogram : Map[Char, Long] = _charHist
     val ccHistogram : Map[CharClass, List[Char]] = _ccHist
-    var totalCount : Long = _totalCount
+    val totalCount : Long = _totalCount
 
     val representation: XClass = {
         val symbolPcts: Map[CharClass, Double] = ccHistogram.map(x => (x._1, x._2.length.toDouble/totalCount))

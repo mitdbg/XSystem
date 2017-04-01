@@ -6,7 +6,7 @@ import scala.util.matching.Regex
   * Created by ilyas on 2017-02-18.
   */
 object Config {
-    val maxBranches: Int = 10
+    val maxBranches: Int = 7
     val branchingSeed: Double = 0.1
     val specChars: Regex = "[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\]".r
     val uppercaseChars: Set[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray.toSet
@@ -14,6 +14,8 @@ object Config {
     val numbers: Set[Char] = "0123456789".toCharArray.toSet
     val inc : Int = 10
     val capturePct: Double = 0.85
+
+    def neededSampleSize(std: Double): Double = Math.pow(1.96*std/0.5, 2.0)
 }
 
 object Utils {
