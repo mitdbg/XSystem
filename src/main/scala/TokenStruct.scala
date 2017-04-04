@@ -12,38 +12,42 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
                   _archive : Seq[Double] = Seq()
                  )
 {
-    private final val symbolStructs : Seq[SymbolStruct] = _symbolStructs
-    private final val doneAdding : Boolean = _doneAdding
-    private final val history : Seq[Double] = _history
-    private final val stdDev : Double = _stdDev
-    val archive : Seq[Double] = _archive
+  private final val symbolStructs : Seq[SymbolStruct] = _symbolStructs
+  private final val doneAdding : Boolean = _doneAdding
+  private final val history : Seq[Double] = _history
+  private final val stdDev : Double = _stdDev
+  val archive : Seq[Double] = _archive
 
-    val scoreSoFar: Double = archive.sum/archive.length
-    val representation: Seq[XClass] = symbolStructs.map(_.representation)
+  val scoreSoFar: Double = archive.sum/archive.length
+  val representation: Seq[XClass] = symbolStructs.map(_.representation)
 
-    def learnToken(token: String): TokenStruct = if (doneAdding) this else {
-        val tokenScore : Double = symbolStructs.zip(token).map((c: (SymbolStruct, Char)) => c._1.scoreChar(c._2)).sum
+  def learnToken(token: String): TokenStruct = if (doneAdding) this else {
+      val tokenScore : Double = symbolStructs.zip(token).map((c: (SymbolStruct, Char)) => c._1.scoreChar(c._2)).sum
 
-        val _symbolStructs : Seq[SymbolStruct] = (token zipWithIndex) map (
-                (ci : (Char, Int)) => {
-                    if (ci._2 >= symbolStructs.length) new SymbolStruct(ci._1)
-                    else symbolStructs(ci._2).addChar(ci._1)
-                }
-            )
-        val _history : Seq[Double] = history :+ tokenScore
-        val _stdDev : Double = if (_history.length % Config.inc == 0) Vec(_history : _*).stdev else stdDev
-        val _doneAdding : Boolean = Config.neededSampleSize(_stdDev) < _history.length
-        val _archive = if (_doneAdding) archive ++ _history else archive
-        new TokenStruct(_symbolStructs, _doneAdding, _history, _stdDev, _archive)
-    }
+      val _symbolStructs : Seq[SymbolStruct] = (token zipWithIndex) map (
+              (ci : (Char, Int)) => {
+                  if (ci._2 >= symbolStructs.length) new SymbolStruct(ci._1)
+                  else symbolStructs(ci._2).addChar(ci._1)
+              }
+          )
+      val _history : Seq[Double] = history :+ tokenScore
+      val _stdDev : Double = if (_history.length % Config.inc == 0) Vec(_history : _*).stdev else stdDev
+      val _doneAdding : Boolean = Config.neededSampleSize(_stdDev) < _history.length
+      val _archive = if (_doneAdding) archive ++ _history else archive
+      new TokenStruct(_symbolStructs, _doneAdding, _history, _stdDev, _archive)
+  }
 
-    def scoreToken(token: String): Double = token.toCharArray.zip(symbolStructs).map {
-        (cs: (Char, SymbolStruct)) => cs._2.scoreChar(cs._1)
-    }.sum + (token.length - symbolStructs.length) match {
-        case 0 => 0
-        case x if x > 0 => token.length - symbolStructs.length
-        case _ => 1.0
-    }
+  def reopened: TokenStruct = new TokenStruct(symbolStructs,false,_archive=archive++history)
 
-    override def toString: String = representation.map(_.toString).mkString("")
+  def scoreToken(token: String): Double = token.toCharArray.zip(symbolStructs).map {
+      (cs: (Char, SymbolStruct)) => cs._2.scoreChar(cs._1)
+  }.sum + (token.length - symbolStructs.length match {
+      case 0 => 0
+      case x if x > 0 => x
+      case _ => 1.0
+  })
+
+  def randomToken: String = representation.map(_.randomRep).mkString("")
+
+  override def toString: String = representation.map(_.toString).mkString("")
 }

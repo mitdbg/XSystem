@@ -12,5 +12,6 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.3"
+libraryDependencies += "org.sameersingh.scalaplot" % "scalaplot" % "0.0.4"
 
 scalaVersion := "2.11.1"

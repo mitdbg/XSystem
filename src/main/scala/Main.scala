@@ -1,5 +1,6 @@
 import org.saddle.{Frame, Series}
 import org.saddle.io.{CsvFile, CsvParser}
+import org.sameersingh.scalaplot.Implicits._
 
 /**
   * Created by ilyas on 2017-02-18.
@@ -7,17 +8,25 @@ import org.saddle.io.{CsvFile, CsvParser}
 object Main {
 
     def main(args: Array[String]): Unit = {
-        val (training, testing) = Loader.loadCarData()
-        val x = new XStruct()
-        val newX = x.addNewLines(training.map(_._1).toArray)
-        println(newX.toString)
-        testing.foreach {
-            case (s: String, l: String) => println(newX.computeOutlierScore(s) + " " + l)
-        }
+        runExperimentOutliers("snmpguess")
     }
 
-    def runExperimentOutliers(): Unit = {
-
+    def runExperimentOutliers(errType: String) : Unit = {
+        val (training, testing) = KDDLoader.loadData(errType)
+        val x = new XStruct()
+        val newX = x.addNewLines(training.map(_._1.mkString(",")).toArray)
+        println(newX.toString)
+        println("Classifying...")
+        val scores = testing.map {
+            case (s: List[String], l: String) => (newX.computeOutlierScore(s.mkString(",")), l == s"$errType.")
+        }
+        println("Analyzing...")
+        val PR: Map[Double, Double] = (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap
+        output(PNG("graphs/", errType), xyChart(
+            PR.keys.toSeq.sorted -> (PR(_)),
+            x = Axis("Recall", range = (0.0,1.05)),
+            y = Axis("Precision", range = (0.0,1.05))
+        ))
     }
 
     def runExperimentColCompare(): Unit = {
@@ -27,13 +36,25 @@ object Main {
     def runExperimentColumnLabel(): Unit = {
 
     }
+
+    def calcPR(scores: List[(Double,Boolean)],threshold: Double): (Double, Double) = {
+        val tp = scores.filter(_._1 > threshold).count(_._2).toDouble
+        val fp = scores.filter(_._1 > threshold).count(!_._2).toDouble
+        val fn = scores.filter(_._1 <= threshold).count(_._2).toDouble
+        (tp/(tp+fn), tp/(tp+fp))
+    }
 }
+/*
+Load in the saved KDD data. The data was prepared in the following way:
+> Download the KDDCup train file, save as kdd-train.csv
+> cat kdd-test.csv | perl -n -e 'print if rand() < 0.05' | grep normal > kdd-small.csv
+> cat kdd-test.csv | perl -n -e 'print if rand() < 0.001' | grep OTHER_ERR_NAME > kdd-small.csv
+ */
+object KDDLoader {
+    val kddPath = s"/Users/ailyas/Documents/Datasets/KDD1999/"
 
-object Loader {
-    val carPath = "/Users/ailyas/Documents/Datasets/TwoClassUCI/Car/car.csv"
-
-    def formatFrame(f: Frame[Int,Int,String]): List[(String,String)] = f.colSlice(0,f.numCols)
-      .rreduce(_.toSeq.map(_._2).mkString(","))
+    def formatFrame(f: Frame[Int,Int,String]): List[(List[String],String)] = f.colSlice(0,f.numCols-1)
+      .rreduce(_.toSeq.map(_._2).toList)
       .toSeq
       .map(_._2)
       .toList
@@ -43,18 +64,18 @@ object Loader {
             .map(_._2)
       )
 
-    def loadCarData(): (List[(String,String)],List[(String,String)]) = {
-        val carData: Frame[Int,Int,String] = CsvParser.parse(CsvFile(carPath))
-        val badCars: Frame[Int,Int,String] = carData.rfilter(
-            (x: Series[Int, String]) => x.last.toString.equals("unacc")
+    def loadData(errorType:String): (List[(List[String],String)],List[(List[String],String)]) = {
+        val allData: Frame[Int,Int,String] = CsvParser.parse(CsvFile(kddPath + s"kdd-$errorType.csv"))
+        val badPackets: Frame[Int,Int,String] = allData.rfilter(
+            (x: Series[Int, String]) => x.last.toString.equals(s"$errorType.")
         )
-        val goodCars: Frame[Int,Int,String] = carData.rfilter(
-            (x: Series[Int, String]) => !x.last.toString.equals("unacc")
+        val goodPackets: Frame[Int,Int,String] = allData.rfilter(
+            (x: Series[Int, String]) => x.last.toString.equals("normal.")
         )
 
-        val training:List[(String,String)] = formatFrame(goodCars.rowSlice(0,(goodCars.numRows*0.8).toInt))
-        val testing:List[(String,String)] = formatFrame(goodCars.rowSlice((goodCars.numRows*0.8).toInt, goodCars.numRows)
-          .rjoin(badCars.rowSlice(0,100)))
+        val training:List[(List[String],String)] = formatFrame(goodPackets.rowSlice(0,(goodPackets.numRows*0.9).toInt))
+        val testing:List[(List[String],String)] = formatFrame(goodPackets.rowSlice((goodPackets.numRows*0.9).toInt, goodPackets.numRows)
+          .rjoin(badPackets))
         (training, testing)
     }
 }
