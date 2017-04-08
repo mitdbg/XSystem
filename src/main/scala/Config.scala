@@ -6,14 +6,14 @@ import scala.util.matching.Regex
   * Created by ilyas on 2017-02-18.
   */
 object Config {
-    val maxBranches: Int = 3
-    val branchingSeed: Double = 5 // Disabling branching for now
-    val specChars: Regex = "[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\]".r
+    val maxBranches: Int = 7
+    val branchingSeed: Double = 0.1 // Disabling branching for now
+    val specChars: String = ((0 to 47)++(58 to 64)++(91 to 96)++(123 to 255)).map(_.toChar).mkString("")//"[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\ '’‘ ̣ ̃]".r
     val uppercaseChars: Set[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray.toSet
     val lowercaseChars: Set[Char] = "abcdefghijklmnopqrstuvwxyz".toCharArray.toSet
     val numbers: Set[Char] = "0123456789".toCharArray.toSet
     val inc : Int = 30
-    val capturePct: Double = 0.5
+    val capturePct: Double = 0.85
 
     def neededSampleSize(std: Double): Double = Math.pow(1.96*std/0.5, 2.0)
 }

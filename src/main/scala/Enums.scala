@@ -15,7 +15,10 @@ case object UCC extends CharClass { val (rep, toXClass, domain) = ("\\W", X_UCC,
 case object LCC extends CharClass { val (rep, toXClass, domain) = ("\\w", X_LCC, Config.lowercaseChars) }
 case object NUM extends CharClass { val (rep, toXClass, domain) = ("\\d", X_NUM, Config.numbers ) }
 case class SPC(c: String) extends CharClass {
-  assert(Config.specChars.findAllIn(c.toString).nonEmpty)
+  if(!Config.specChars.contains(c.toString)) {
+    println(c.toString)
+    assert(false)
+  }
   val (rep, toXClass, domain) = (c, X_SPEC(c), c.toCharArray.toSet)
   override val isClass = false
 }

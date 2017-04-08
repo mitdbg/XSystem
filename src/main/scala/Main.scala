@@ -6,17 +6,17 @@ import org.sameersingh.scalaplot.Implicits._
 object Main {
 
     def main(args: Array[String]): Unit = {
-        runExperimentOutliers("snmpguess")
+        //runExperimentOutliers("snmpguess")
+        runExperimentColCompare()
     }
 
     def runExperimentOutliers(errType: String) : Unit = {
         val (training, testing) = KDDLoader.loadData(errType)
-        val x = new XStruct()
-        val trainedX = x.addNewLines(training.map(_._1.mkString(",")).toArray)
-        println(trainedX.toString)
+        val x = new XStruct().addNewLines(training.map(_._1.mkString(",")).toArray)
+        println(x.toString)
         println("Classifying...")
         val scores = testing.map {
-            case (s: List[String], l: String) => (trainedX.computeOutlierScore(s.mkString(",")), l == s"$errType.")
+            case (s: List[String], l: String) => (x.computeOutlierScore(s.mkString(",")), l == s"$errType.")
         }
         println("Analyzing...")
         val PR: Map[Double, Double] = (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap
@@ -28,17 +28,25 @@ object Main {
     }
 
     def runExperimentColCompare(): Unit = {
-        val ds = DuplicateDetectionLoader.loadData()
-        var results: Map[(Int,Int),Double] = Map()
-        ds._1.indices.cross(ds._2.indices).foreach {
+        val learnStructs = (s:List[List[String]]) => s.map(x => new XStruct().addNewLines(x.toArray))
+        val (d1: List[List[String]], d2:List[List[String]]) = DuplicateDetectionLoader.loadData()
+        val gt: Set[(Int, Int)] = DuplicateDetectionLoader.groundTruth
+        val xs: (List[XStruct], List[XStruct]) = (learnStructs(d1), learnStructs(d2))
+        var scores: List[(Double, Boolean)] = List()
+        xs._1.indices.cross(xs._2.indices).foreach {
             case (i: Int, j: Int) => {
-                val x = new XStruct()
-                val trainedX = x.addNewLines(ds._1(i).toArray)
-                val y = new XStruct()
-                val trainedY = y.addNewLines(ds._2(j).toArray)
-                results += ((i,j)->)
+                scores = scores :+ (5-XStruct.compareTwo(xs._1(i),xs._2(j)), gt.contains((i,j)))
             }
         }
+
+        println(scores)
+
+        val PR: Map[Double, Double] = (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap
+        output(PNG("/Users/ailyas/Downloads/", "test"), xyChart(
+            PR.keys.toSeq.sorted -> (PR(_)),
+            x = Axis("Recall", range = (0.0,1.05)),
+            y = Axis("Precision", range = (0.0,1.05))
+        ))
     }
 
     def runExperimentColumnLabel(): Unit = {

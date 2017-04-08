@@ -1,3 +1,5 @@
+import java.util.regex.Pattern
+
 import org.saddle._
 
 import scala.util.matching.Regex
@@ -16,7 +18,10 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
         this(Array(s),BranchStruct.findTokenizers(s), BranchStruct.makeTokenStructs(s))
 
     def checkRep(): Unit = {
-        assert(tokenStructs.length == tokenizers.length)
+        if(tokenStructs.length != tokenizers.length) {
+            println(tokenStructs, tokenizers)
+            assert(false)
+        }
         assert(tokenizers.last.equals("$"))
         assert(lines.nonEmpty)
     }
@@ -43,7 +48,7 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
     def learnString(str: String): BranchStruct = {
         checkRep()
         // if (!tokenizers.sameElements(BranchStruct.findTokenizers(str))) println("O NO") // TODO: Change this
-        val strTokens: Array[String] = tokenizeString(str)
+        val strTokens: Array[String] = tokenizeString(str).padTo(tokenStructs.length, "")
 
         val newTokens: Array[TokenStruct] = (tokenStructs zip strTokens) map (
             (x: (TokenStruct, String)) => x._1.learnToken(x._2)
@@ -77,11 +82,12 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
 object BranchStruct {
     // Tokenizes in a string, returning hinges (called once for now, every iteration later)
     def findTokenizers(str: String): Array[String] =
-        (Config.specChars.findAllIn(str).toSeq :+ "$").toArray
+        str.filter(s => Config.specChars.contains(s.toString)).toCharArray.map(_.toString) :+ "$"
+        //(Config.specChars.findAllIn(str).toSeq :+ "$").toArray
 
     // Makes a set of initialized token structures (called once)
     def makeTokenStructs(str: String): Array[TokenStruct] =
-        str.split(Config.specChars.toString()).map(x => new TokenStruct()).toSeq.toArray
+        str.split("[" + Pattern.quote(Config.specChars) + "]",-1).map(x => new TokenStruct()).toSeq.toArray
 
     // Merges two branch structures
     def merged(outer: BranchStruct, inner: BranchStruct): BranchStruct =

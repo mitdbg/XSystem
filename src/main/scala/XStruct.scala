@@ -27,7 +27,6 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
     private def findRightBranch(str: String): (Map[BranchStruct,Long],BranchStruct) = if (branches.isEmpty) newBranch(str) else {
         val scores: Iterable[(Double,BranchStruct)] = branches.keys.map(_.scoreString(str)).zip(branches.keys)
         val minPair : (Double, BranchStruct) = scores.minBy(_._1)
-        //println(minPair._1)
         if (minPair._1 < branchingThreshold) (branches, minPair._2) else newBranch(str)
     }
 
@@ -38,7 +37,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             x => (x, distanceMeasure(x))
         ).toMap
         val (minCoords: (BranchStruct, BranchStruct), minDist: Double) = distanceMatrix.filterKeys(x => x._1 != x._2).minBy(_._2)
-        println("Trimming")
+        //println("Trimming")
         new XStruct(
             lines,
             branches
@@ -47,6 +46,11 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             _bThresh = Math.max(minDist, branchingThreshold+0.01)
         )
     }
+
+    // Comparison
+    def subsetScore(other: XStruct): Double = branches.map {
+        case (b: BranchStruct, freq: Long) => freq*other.branches.map(_._1.supersetScore(b)).min
+    }.sum/branches.values.sum.toDouble
 
     // Outlier score for a given string
     def computeOutlierScore(str: String): Double = branches.map {
@@ -58,4 +62,8 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
     implicit class Crossable[X](xs: Traversable[X]) {
         def cross[Y](ys: Traversable[Y]): Traversable[(X,Y)] = for { x <- xs; y <- ys } yield (x, y)
     }
+}
+
+object XStruct {
+    def compareTwo(x: XStruct, y: XStruct): Double = (x.subsetScore(y) + y.subsetScore(x))/2
 }

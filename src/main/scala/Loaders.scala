@@ -39,13 +39,13 @@ object KDDLoader {
 
 object DuplicateDetectionLoader {
   val dupPath: String = s"/Users/ailyas/Documents/Datasets/DupDetect/"
-  val groundTruth: List[(Int,Int)] = List(2->0,3->1,4->2,5->3,6->4,7->5)
+  val groundTruth: Set[(Int,Int)] = Set(2->0,3->1,4->2,5->3,6->4,7->5)
 
   def getCols(f: Frame[Int,Int,String]): List[List[String]] = f.toColSeq.map(_._2).map(_.toSeq.map(_._2).toList).toList
 
   def loadData(): (List[List[String]], List[List[String]]) = {
-    val datasetOne: Frame[Int,Int,String] = CsvParser.parse(CsvFile(dupPath + "dataset1.csv"))
-    val datasetTwo: Frame[Int,Int,String] = CsvParser.parse(CsvFile(dupPath + "dataset2.csv"))
+    val datasetOne: Frame[Int,Int,String] = CsvParser.parse(CsvFile(dupPath + "reg_dataset1.csv"))
+    val datasetTwo: Frame[Int,Int,String] = CsvParser.parse(CsvFile(dupPath + "reg_dataset2.csv"))
     (getCols(datasetOne), getCols(datasetTwo))
   }
 }
