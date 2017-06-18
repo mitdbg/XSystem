@@ -1,3 +1,6 @@
+import java.text.SimpleDateFormat
+import java.util.Calendar
+
 import org.apache.commons.math3.stat.inference.ChiSquareTest
 
 import scala.util.matching.Regex
@@ -29,8 +32,21 @@ object Utils {
 
     // Performs Chi-Square test expecting a uniform distribution
     def significant(observed: Seq[Long]): Boolean = if (observed.length < 2) false else
-        new ChiSquareTest().chiSquareTest(Array.fill(observed.length)(1.0), observed.toArray,0.01)
+        new ChiSquareTest().chiSquareTest(Array.fill(observed.length)(1.0), observed.toArray, 0.01)
 
     // Potentially clean up later?
-    def asciiMap: Map[Char,Long] = (0 to 256).map(i => (i.toChar,0:Long)).toMap
+    def asciiMap: Map[Char, Long] = (0 to 256).map(i => (i.toChar, 0: Long)).toMap
+
+    // Percentiles calculator
+    def calcPercentiles[T](arr: Seq[T], ps: Seq[Double])(implicit ev: T => Ordered[T]): Seq[T] =
+        ps.map(p => arr.sorted[T].apply((arr.length * p).toInt))
+
+    // Nanoseconds to seconds
+    def nsToS(ns: Long): Double = ns/math.pow(10,9)
+
+    // Formatting date for output graphs
+    def formattedDate(): String = {
+        val format = new SimpleDateFormat("yy_MM_dd_hh_mm_ss")
+        format.format(Calendar.getInstance().getTime)
+    }
 }

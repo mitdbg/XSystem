@@ -1,0 +1,52 @@
+# Chart settings
+unset key
+set terminal png enhanced 
+
+set terminal png enhanced 
+set output "mb_col_length17_06_17_01_01_08.png"
+# XYChart settings
+set nologscale
+set xr [100.0:10000.0] noreverse
+set yr [0.0:17.134191816] noreverse
+set xlabel "Number of Tuples"
+set ylabel "Time (s)"
+# XYData Plotting
+plot \
+'-'  using 1:2 title "Label" with linespoints , \
+'-'  using 1:2 title "Label" with linespoints , \
+'-'  using 1:2 title "Label" with linespoints 
+# Label
+100.0	1.661610781
+200.0	1.522309926
+500.0	1.494889163
+1000.0	1.470832401
+2500.0	1.6418719
+5000.0	1.393748349
+7000.0	1.48901367
+10000.0	1.539910619
+end
+# Label
+100.0	3.512288792
+200.0	2.206548475
+500.0	1.689591165
+1000.0	2.082048135
+2500.0	2.023011398
+5000.0	1.502696092
+7000.0	1.751166435
+10000.0	1.849278865
+end
+# Label
+100.0	5.711397272
+200.0	2.275455564
+500.0	2.09204416
+1000.0	2.161867929
+2500.0	3.150478822
+5000.0	1.564042977
+7000.0	1.9278551
+10000.0	2.002001816
+end
+
+unset output
+# Wrapup
+set terminal dumb
+refresh

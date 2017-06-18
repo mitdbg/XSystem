@@ -1,6 +1,8 @@
 import org.saddle.{Frame, Series}
 import org.saddle.io.{CsvFile, CsvParser}
 
+import scala.util.Random
+
 /*
 Load in the saved KDD data. The data was prepared in the following way:
 > Download the KDDCup train file, save as kdd-train.csv
@@ -48,4 +50,20 @@ object DuplicateDetectionLoader {
     val datasetTwo: Frame[Int,Int,String] = CsvParser.parse(CsvFile(dupPath + "reg_dataset2.csv"))
     (getCols(datasetOne), getCols(datasetTwo))
   }
+}
+
+object MicrobenchLoader {
+  val dataPath: String = s"/Users/ailyas/Documents/Datasets/MicrobenchData/"
+
+  def loadSpeedData(len: Int): List[String] = CsvParser.parse(
+    CsvFile(dataPath + "Speed/currency_codes.csv")
+  ).colAt(1).toSeq.map(_._2).toList
+
+  def loadHingeData(numDates: Int): List[String] = CsvParser.parse(
+    CsvFile(dataPath + "Hinges/" + numDates.toString + "-dates.csv")
+  ).rreduce(x => x.toSeq.map(_._2).mkString("-")).toSeq.map(_._2).toList
+
+  def loadAvgRowLengthData(avgLen: Int): List[String] = (1 to 1000).map(_ => {
+    (1 to avgLen).map(_ => Random.nextPrintableChar()).mkString("")
+  }).toList
 }
