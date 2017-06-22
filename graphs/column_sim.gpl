@@ -1,0 +1,25 @@
+# Chart settings
+unset key
+set terminal png enhanced 
+
+set terminal png enhanced 
+set output "column_sim.png"
+# XYChart settings
+set nologscale
+set xr [0.0:1.05] noreverse
+set yr [0.0:1.05] noreverse
+set xlabel "Recall"
+set ylabel "Precision"
+# XYData Plotting
+plot \
+'-'  using 1:2 title "Label" with linespoints 
+# Label
+0.5	1.0
+0.75	1.0
+1.0	1.0
+end
+
+unset output
+# Wrapup
+set terminal dumb
+refresh
