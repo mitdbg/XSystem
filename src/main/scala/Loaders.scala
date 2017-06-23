@@ -1,6 +1,5 @@
 import org.saddle.{Frame, Series}
 import org.saddle.io.{CsvFile, CsvParser}
-import faker._
 
 import scala.util.Random
 
@@ -77,17 +76,32 @@ object MicrobenchLoader {
 }
 
 object FakeDataLoader {
-  def loadTable(len: Int): (List[List[String]],List[(Int,Int)]) = ((1 to len).map(_ => {
-    List(
-      Internet.user_name,
-      Internet.user_name,
-      Internet.email,
-      Internet.email,
-      Internet.ip_v4_address,
-      Internet.domain_name,
-      Internet.ip_v4_address,
-      Name.first_name,
-      Name.last_name
-    )
-  }).toList.transpose, List((0,1),(2,3),(4,6),(7,8)))
+  def loadTable(params: Map[String,Any]): (List[List[String]],Set[(Int,Int)]) = {
+    val (len: Int, numGroups: Int, numCols: Int) = (
+      params.getOrElse("length", 1000).asInstanceOf[Int],
+      params.getOrElse("numGroups", 50).asInstanceOf[Int],
+      params.getOrElse("numCols", 100).asInstanceOf[Int]
+    ) // Getting user-defined options
+    val splitters: Seq[Int] = Seq(0) ++
+      Random.shuffle((0 until numCols).toList).take(numGroups).sorted ++
+      Seq(numCols)// Get random numbers
+    val groups: Seq[Seq[Int]] = splitters.indices.tail.map(i => splitters(i-1) until splitters(i))
+    val groupMap: Map[Int, Int] = groups.indices.flatMap(
+      i => groups(i).map(
+        j => j -> i
+      )
+    ).toMap
+    val gt: Set[(Int, Int)] = groups.flatMap(g => g.cross(g).toSeq).toSet
+    val generatorsToUse: List[()=>String] = Random.shuffle(Config.acceptableGenerators).take(groups.length)
+    val res: List[List[String]] = (1 to len).map(
+      _ => (0 until numCols).toList.map(
+        i => generatorsToUse(groupMap(i)).apply()
+      )
+    ).toList
+    (res.transpose, gt)
+  }
+
+  implicit class Crossable[X](xs: Traversable[X]) {
+    def cross[Y](ys: Traversable[Y]): Traversable[(X,Y)] = for { x <- xs; y <- ys } yield (x, y)
+  }
 }

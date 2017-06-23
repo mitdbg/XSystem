@@ -5,7 +5,7 @@ version := "1.0"
 resolvers ++= Seq(
     "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
     "Sonatype Releases" at "http://oss.sonatype.org/content/repositories/releases",
-    "justwrote" at "http://repo.justwrote.it/releases"
+    "Fabricator" at "http://dl.bintray.com/biercoff/Fabricator"
 
 )
 
@@ -15,6 +15,6 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.3"
 libraryDependencies += "org.sameersingh.scalaplot" % "scalaplot" % "0.0.4"
-libraryDependencies += "it.justwrote" %% "scala-faker" % "0.3"
+libraryDependencies += "com.github.azakordonets" % "fabricator_2.11" % "2.1.4"
 
 scalaVersion := "2.11.1"

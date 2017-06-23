@@ -34,7 +34,13 @@ object Main {
 
     def runExperimentColCompare(): Unit = {
         val learnStructs = (s:List[List[String]]) => s.map(x => new XStruct().addNewLines(x.toArray))
-        val (table: List[List[String]], gt: List[(Int, Int)]) = FakeDataLoader.loadTable(1000)
+        val (table: List[List[String]], gt: Set[(Int, Int)]) = FakeDataLoader.loadTable(
+            Map(
+                "length" -> 10,
+                "numGroups" -> 3,
+                "numCols" -> 10
+            )
+        )
         val xs: List[XStruct] = learnStructs(table)
         var scores: List[(Double, Boolean)] = List()
         xs.indices.cross(xs.indices).foreach {

@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
+import fabricator.Fabricator
 import org.apache.commons.math3.stat.inference.ChiSquareTest
 
 import scala.util.matching.Regex
@@ -17,6 +18,18 @@ object Config {
     val numbers: Set[Char] = "0123456789".toCharArray.toSet
     val inc : Int = 30
     val capturePct: Double = 0.85
+    val acceptableGenerators: List[()=>String] = List(
+        () => Fabricator.calendar().randomDate.asString,
+        () => Fabricator.calendar().time24h,
+        () => Fabricator.contact().firstName,
+        () => Fabricator.contact().address,
+        () => Fabricator.contact().eMail,
+        () => Fabricator.contact().fullName(setPrefix = false, setSuffix = false),
+        () => Fabricator.contact().weight(true),
+        () => Fabricator.internet().UUID,
+        () => Fabricator.internet().hashtag,
+        () => Fabricator.internet().ipv6
+    )
 
     def neededSampleSize(std: Double): Double = Math.pow(1.96*std/0.5, 2.0)
 }
