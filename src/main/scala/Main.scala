@@ -1,5 +1,4 @@
 import org.sameersingh.scalaplot.Implicits._
-import org.sameersingh.scalaplot.XYData
 
 /**
   * Created by ilyas on 2017-02-18.
@@ -11,7 +10,7 @@ object Main {
         //    "trainPct" -> 0.9
         //))
         //runExperimentOutliers(training, testing, "outliers_1")
-        runExperimentColCompare()
+        runExperimentColCompare(ChemblDataLoader)
         //runExperimentMicrobench(runCL = true, runNH = true, runARL = false)
 
     }
@@ -32,15 +31,30 @@ object Main {
         ))
     }
 
-    def runExperimentColCompare(): Unit = {
+    def runExperimentColCompare(loader: ColCompareDataLoader): Unit = {
         val learnStructs = (s:List[List[String]]) => s.map(x => new XStruct().addNewLines(x.toArray))
-        val (table: List[List[String]], gt: Set[(Int, Int)]) = FakeDataLoader.loadTable(
+        val (table: List[List[String]], newParams: Map[String, Any]) = loader.loadData(
             Map(
                 "length" -> 10,
                 "numGroups" -> 3,
-                "numCols" -> 10
+                "numCols" -> 10,
+                "cols" -> List(
+                    "public.action_type.csv",
+                    "public.activity_stds_lookup.csv",
+                    "public.assay_parameters.csv",
+                    "public.assay_type.csv",
+                    "public.assays.csv",
+                    "public.atc_classification.csv",
+                    "public.binding_sites.csv",
+                    "public.bio_component_sequences.csv",
+                    "public.bioassay_ontology.csv",
+                    "public.biotherapeutic_components.csv",
+                    "public.biotherapeutics.csv",
+                    "public.cell_dictionary.csv"
+                )
             )
         )
+        val gt: Set[(Int,Int)] = loader.loadGroundTruth(newParams + ("threshold" -> 0.5))
         val xs: List[XStruct] = learnStructs(table)
         var scores: List[(Double, Boolean)] = List()
         xs.indices.cross(xs.indices).foreach {
@@ -94,7 +108,7 @@ object Main {
         if (runARL) runTimedExperiment(
             List(1,5,10,25,50,75,100),
             MicrobenchLoader.loadAvgRowLengthData,
-            "mb_avg_row_legth",
+            "mb_avg_row_length",
             "Average Row Length"
         )
     }

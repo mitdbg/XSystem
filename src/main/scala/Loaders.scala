@@ -1,5 +1,7 @@
+import java.io.File
+
 import org.saddle.{Frame, Series}
-import org.saddle.io.{CsvFile, CsvParser}
+import org.saddle.io.{CsvFile, CsvParams, CsvParser}
 
 import scala.util.Random
 
@@ -17,6 +19,15 @@ abstract class OutlierDataLoader {
     )
 
   def loadData(params: Map[String,Any]): (List[(List[String],String)], List[(List[String],String)])
+}
+
+abstract class ColCompareDataLoader {
+  def loadData(params: Map[String,Any]): (List[List[String]],Map[String,Any])
+  def loadGroundTruth(params: Map[String,Any]): Set[(Int,Int)]
+
+  implicit class Crossable[X](xs: Traversable[X]) {
+    def cross[Y](ys: Traversable[Y]): Traversable[(X,Y)] = for { x <- xs; y <- ys } yield (x, y)
+  }
 }
 
 /*
@@ -75,8 +86,9 @@ object MicrobenchLoader {
   }).toList
 }
 
-object FakeDataLoader {
-  def loadTable(params: Map[String,Any]): (List[List[String]],Set[(Int,Int)]) = {
+object FakeDataLoader extends ColCompareDataLoader {
+
+  override def loadData(params: Map[String,Any]): (List[List[String]],Map[String,Any]) = {
     val (len: Int, numGroups: Int, numCols: Int) = (
       params.getOrElse("length", 1000).asInstanceOf[Int],
       params.getOrElse("numGroups", 50).asInstanceOf[Int],
@@ -98,10 +110,44 @@ object FakeDataLoader {
         i => generatorsToUse(groupMap(i)).apply()
       )
     ).toList
-    (res.transpose, gt)
+    (res.transpose, params + ("gt" -> gt))
   }
 
-  implicit class Crossable[X](xs: Traversable[X]) {
-    def cross[Y](ys: Traversable[Y]): Traversable[(X,Y)] = for { x <- xs; y <- ys } yield (x, y)
+  override def loadGroundTruth(params: Map[String, Any]): Set[(Int,Int)] = {
+    params("gt").asInstanceOf[Set[(Int,Int)]]
+  }
+}
+
+object ChemblDataLoader extends ColCompareDataLoader {
+  override def loadData(params: Map[String, Any]): (List[List[String]],Map[String,Any]) = {
+    val allFiles: Seq[File] = new File("/Users/ailyas/Documents/Datasets/SimPairs/chembl/").listFiles()
+    val filesToUse: Seq[String] = params.getOrElse("cols", allFiles.map(_.getName)).asInstanceOf[Seq[String]]
+    val paths: Seq[String] = allFiles.filter(f => filesToUse.contains(f.getName)).map(_.getAbsolutePath)
+    val columns: List[List[String]] = paths.toList.flatMap(p => {
+      println(p)
+      CsvParser.parse(params=CsvParams(separChar = ';'))(CsvFile(p))
+        .toColSeq
+        .tail
+        .map(_._2.toSeq.toList.map(_._2))
+    })
+    val columnNames: List[String] = paths.toList.flatMap(p => {
+      CsvParser.parse(params=CsvParams(separChar = ';'))(CsvFile(p))
+        .rowAt(0)
+        .toSeq.map(_._2 + "|" + p.split("/").last)
+    })
+    (columns, params + ("colNames" -> columnNames))
+  }
+
+  override def loadGroundTruth(params: Map[String, Any]): Set[(Int,Int)] = {
+    val columnNames: List[String] = params("colNames").asInstanceOf[List[String]]
+    val threshold: Double = params.getOrElse("threshold",0.5).asInstanceOf[Double]
+    val gtCsv = CsvParser.parse(CsvFile("/Users/ailyas/Documents/Datasets/SimPairs/sim_pairs_chembl.csv"))
+    val gt: Seq[(Int,Int)] = gtCsv.toRowSeq.map {
+      case (i: Int, r: Series[Int, String]) => {
+        val indOne: Int = columnNames.indexOf(r.at(1) + "|" + r.at(0))
+        val indTwo: Int = columnNames.indexOf(r.at(3) + "|" + r.at(2))
+        if (r.last.get.toDouble > threshold && indOne > -1 && indTwo > -1) (indOne, indTwo) else null
+      }}.filter(_!=null)
+    gt.toSet
   }
 }
