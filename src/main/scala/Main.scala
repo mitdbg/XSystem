@@ -49,8 +49,7 @@ object Main {
                     "public.bio_component_sequences.csv",
                     "public.bioassay_ontology.csv",
                     "public.biotherapeutic_components.csv",
-                    "public.biotherapeutics.csv",
-                    "public.cell_dictionary.csv"
+                    "public.biotherapeutics.csv"
                 )
             )
         )

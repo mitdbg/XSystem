@@ -11,7 +11,7 @@ import scala.util.matching.Regex
   */
 object Config {
     val maxBranches: Int = 7
-    val branchingSeed: Double = 0.1 // Disabling branching for now
+    val branchingSeed: Double = 0.5 // Disabling branching for now
     val specChars: String = ((0 to 47)++(58 to 64)++(91 to 96)++(123 to 255)).map(_.toChar).mkString("")//"[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\ '’‘ ̣ ̃]".r
     val uppercaseChars: Set[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray.toSet
     val lowercaseChars: Set[Char] = "abcdefghijklmnopqrstuvwxyz".toCharArray.toSet

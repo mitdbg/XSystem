@@ -123,18 +123,13 @@ object ChemblDataLoader extends ColCompareDataLoader {
     val allFiles: Seq[File] = new File("/Users/ailyas/Documents/Datasets/SimPairs/chembl/").listFiles()
     val filesToUse: Seq[String] = params.getOrElse("cols", allFiles.map(_.getName)).asInstanceOf[Seq[String]]
     val paths: Seq[String] = allFiles.filter(f => filesToUse.contains(f.getName)).map(_.getAbsolutePath)
-    val columns: List[List[String]] = paths.toList.flatMap(p => {
-      println(p)
+    val allCols: List[(String, Seq[List[String]])] = paths.toList.map(p => (p.split("/").last, {
       CsvParser.parse(params=CsvParams(separChar = ';'))(CsvFile(p))
         .toColSeq
-        .tail
         .map(_._2.toSeq.toList.map(_._2))
-    })
-    val columnNames: List[String] = paths.toList.flatMap(p => {
-      CsvParser.parse(params=CsvParams(separChar = ';'))(CsvFile(p))
-        .rowAt(0)
-        .toSeq.map(_._2 + "|" + p.split("/").last)
-    })
+    }))
+    val columnNames: List[String] = allCols flatMap { x => x._2.map(x._1 + "|" + _.head) }
+    val columns: List[List[String]] = allCols flatMap { _._2 } map { _.tail }
     (columns, params + ("colNames" -> columnNames))
   }
 
@@ -144,8 +139,8 @@ object ChemblDataLoader extends ColCompareDataLoader {
     val gtCsv = CsvParser.parse(CsvFile("/Users/ailyas/Documents/Datasets/SimPairs/sim_pairs_chembl.csv"))
     val gt: Seq[(Int,Int)] = gtCsv.toRowSeq.map {
       case (i: Int, r: Series[Int, String]) => {
-        val indOne: Int = columnNames.indexOf(r.at(1) + "|" + r.at(0))
-        val indTwo: Int = columnNames.indexOf(r.at(3) + "|" + r.at(2))
+        val indOne: Int = columnNames.indexOf(r.at(0) + "|" + r.at(1))
+        val indTwo: Int = columnNames.indexOf(r.at(2) + "|" + r.at(3))
         if (r.last.get.toDouble > threshold && indOne > -1 && indTwo > -1) (indOne, indTwo) else null
       }}.filter(_!=null)
     gt.toSet
