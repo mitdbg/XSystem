@@ -1,0 +1,20 @@
+# Chart settings
+set key right top
+set terminal postscript eps enhanced color "Helvetica" 16
+set output "eps/row_length_microbench.eps"
+# XYChart settings
+set nologscale
+set xr [1.0:100.0] noreverse
+set yr [0.0:6.9804695699999995] noreverse
+set xlabel "Average Row Length"
+set ylabel "Time (s)"
+# XYData Plotting
+plot \
+'data/row_length_50.data'  using 1:2 title "50th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 1, \
+'data/row_length_95.data'  using 1:2 title "95th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 2, \
+'data/row_length_99.data'  using 1:2 title "99th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 3
+
+unset output
+# Wrapup
+set terminal dumb
+refresh
