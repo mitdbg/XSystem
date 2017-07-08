@@ -1,29 +1,30 @@
 import java.io.File
 
-import org.saddle.{Frame, Series}
-import org.saddle.io.{CsvFile, CsvParams, CsvParser}
+import com.github.tototoshi.csv.{CSVReader, DefaultCSVFormat}
+import org.saddle.io.CsvParser
 
 import scala.util.Random
 
 abstract class OutlierDataLoader {
+  def format(f: Stream[List[String]]): Stream[(List[String],String)] = f.map(r => (r.init, r.last))
 
-  def formatFrame(f: Frame[Int,Int,String]): List[(List[String],String)] = f.colSlice(0,f.numCols-1)
-    .rreduce(_.toSeq.map(_._2).toList)
-    .toSeq
-    .map(_._2)
-    .toList
-    .zip(
-      f.colAt(f.numCols-1)
-        .toSeq
-        .map(_._2)
-    )
+  def randomMerge[T](as: Stream[T], bs: Stream[T], ratio: Double): Stream[T] = {
+    (as, bs) match {
+      case (Stream.Empty, bss) => bss
+      case (ass, Stream.Empty) => ass
+      case (a #:: ass, b #:: bss) =>
+        val dice: Double = Random.nextDouble()
+        if (dice >= ratio) a #:: randomMerge(ass, bs, ratio)
+        else b #:: randomMerge(as, bss, ratio)
+    }
+  }
 
-  def loadData(params: Map[String,Any]): (List[(List[String],String)], List[(List[String],String)])
+  def loadData(params: Map[String,Any]): (Stream[(List[String],String)], Stream[(List[String],String)])
 }
 
 abstract class ColCompareDataLoader {
-  def loadData(params: Map[String,Any]): (List[List[String]],Map[String,Any])
-  def loadGroundTruth(params: Map[String,Any]): Set[(Int,Int)]
+  def loadData(params: Map[String,Any]): (List[Stream[String]],Map[String,Any])
+  def loadGroundTruth(params: Map[String,Any]): (Set[(Int,Int)], Set[(Int, Int)])
 
   implicit class Crossable[X](xs: Traversable[X]) {
     def cross[Y](ys: Traversable[Y]): Traversable[(X,Y)] = for { x <- xs; y <- ys } yield (x, y)
@@ -39,19 +40,21 @@ Load in the saved KDD data. The data was prepared in the following way:
 object KDDLoader extends OutlierDataLoader {
   val kddPath: String = s"/Users/ailyas/Documents/Datasets/KDD1999/"
 
-  override def loadData(params: Map[String, Any]): (List[(List[String],String)], List[(List[String],String)]) = {
-    val errorType: String = params.getOrElse("errorType", "default").asInstanceOf[String]
-    val allData: Frame[Int,Int,String] = CsvParser.parse(CsvFile(kddPath + s"kdd-$errorType.csv"))
-    val badPackets: Frame[Int,Int,String] = allData.rfilter(
-      (x: Series[Int, String]) => x.last.toString.equals(s"$errorType.")
-    )
-    val goodPackets: Frame[Int,Int,String] = allData.rfilter(
-      (x: Series[Int, String]) => x.last.toString.equals("normal.")
-    )
+  override def loadData(params: Map[String, Any]): (Stream[(List[String],String)], Stream[(List[String],String)]) = {
+    val errorType: String = params.getOrElse("errorType", "apache2").asInstanceOf[String]
+    val allData: Stream[List[String]] = CSVReader.open(kddPath + s"kdd-$errorType.csv").toStream
+    val errorString: String = s"$errorType."
+    val badPackets: Stream[List[String]] = allData.filter(_.last.contentEquals(errorString))
+    val goodPackets: Stream[List[String]] = allData.filter(_.last.contentEquals("normal."))
+    val trainAmount: Int = params("trainNum").asInstanceOf[Int]
+    val testAmount: Int = params("testNum").asInstanceOf[Int]
+    val ratio: Double = params("outlierProp").asInstanceOf[Double]
 
-    val training:List[(List[String],String)] = formatFrame(goodPackets.rowSlice(0,(goodPackets.numRows*0.9).toInt))
-    val testing:List[(List[String],String)] = formatFrame(goodPackets.rowSlice((goodPackets.numRows*0.9).toInt, goodPackets.numRows)
-      .rjoin(badPackets))
+    val training:Stream[(List[String],String)] = format(goodPackets.take(trainAmount))
+    val testing:Stream[(List[String],String)] = format(randomMerge(
+      goodPackets.slice(trainAmount,trainAmount+testAmount),
+      badPackets, ratio)
+    )
     (training, testing)
   }
 }
@@ -59,36 +62,61 @@ object KDDLoader extends OutlierDataLoader {
 object ForestCoverLoader extends OutlierDataLoader {
   val path: String = s"/Users/ailyas/Documents/Datasets/TwoClassUCI/Forest/"
 
-  override def loadData(params: Map[String,Any]): (List[(List[String], String)], List[(List[String], String)]) = {
-    val outliers: Frame[Int,Int,String] = CsvParser.parse(CsvFile(path + s"forest_outliers.csv"))
-    val inliers: Frame[Int,Int,String] = CsvParser.parse(CsvFile(path + s"forest_inliers.csv"))
-    val allData = Random.shuffle(formatFrame(outliers.concat(inliers)))
-    val trainPct: Double = params.getOrElse("trainPct", 0.9).asInstanceOf[Double]
-    val training: List[(List[String],String)] = allData.slice(0,(trainPct*allData.length).toInt)
-    val testing: List[(List[String],String)] = allData.slice((trainPct*allData.length).toInt,allData.length)
+  override def loadData(params: Map[String,Any]): (Stream[(List[String], String)], Stream[(List[String], String)]) = {
+    val outliers: Stream[List[String]] = CSVReader
+      .open(path + s"forest_outliers.csv").toStream
+      .map(_ :+ "forest_outlier.")
+    val inliers: Stream[List[String]] = CSVReader
+      .open(path + s"forest_inliers.csv").toStream
+      .map(_ :+ "inlier.")
+
+    val outFileSize: Double = new File(path + s"forest_outliers.csv").length()
+    val inFileSize: Double = new File(path + s"forest_inliers.csv").length()
+    val ratio: Double = outFileSize/(outFileSize+inFileSize)
+
+    val allData: Stream[List[String]] = randomMerge(outliers, inliers, ratio)
+    val trainNum: Int = params("trainNum").asInstanceOf[Int]
+    val testNum: Int = params("testNum").asInstanceOf[Int]
+    val training: Stream[(List[String],String)] = format(allData.take(trainNum))
+    val testing: Stream[(List[String],String)] = format(allData.slice(trainNum,trainNum+testNum))
     (training, testing)
+  }
+}
+
+object MassDataLoader extends OutlierDataLoader {
+  val path: String = s"/Users/ailyas/Documents/Datasets/ManualOutlier/"
+  val cols: List[String] = (1 to 10).map(_.toString).toList
+  val colPaths: List[String] = cols.map(path + "col" + _ + "_done.csv")
+
+  override def loadData(params: Map[String, Any]): (Stream[(List[String], String)], Stream[(List[String], String)]) = {
+    val colToLoad: Int = params("col").asInstanceOf[Int]
+    val data: Stream[(List[String], String)] = CSVReader
+      .open(colPaths(colToLoad)).toStream.map(
+      (row: List[String]) => (List(row.head), if(row.last.length==0) "inlier" else "labeled_outlier.")
+    )
+    (data, data)
   }
 }
 
 object MicrobenchLoader {
   val dataPath: String = s"/Users/ailyas/Documents/Datasets/MicrobenchData/"
 
-  def loadSpeedData(len: Int): List[String] = CsvParser.parse(
-    CsvFile(dataPath + "Speed/currency_codes.csv")
-  ).colAt(1).toSeq.map(_._2).toList
+  def loadSpeedData(len: Int): Stream[String] = CSVReader
+    .open(dataPath + "Speed/currency_codes.csv")
+    .toStream.map(_.apply(1))
 
-  def loadHingeData(numDates: Int): List[String] = CsvParser.parse(
-    CsvFile(dataPath + "Hinges/" + numDates.toString + "-dates.csv")
-  ).rreduce(x => x.toSeq.map(_._2).mkString("-")).toSeq.map(_._2).toList
+  def loadHingeData(numDates: Int): Stream[String] = CSVReader
+    .open(dataPath + "Hinges/" + numDates.toString + "-dates.csv")
+    .toStream.map(_.mkString("-"))
 
-  def loadAvgRowLengthData(avgLen: Int): List[String] = (1 to 1000).map(_ => {
+  def loadAvgRowLengthData(avgLen: Int): Stream[String] = (1 to 1000).toStream.map(_ => {
     (1 to avgLen).map(_ => Random.nextPrintableChar()).mkString("")
-  }).toList
+  })
 }
 
 object FakeDataLoader extends ColCompareDataLoader {
 
-  override def loadData(params: Map[String,Any]): (List[List[String]],Map[String,Any]) = {
+  override def loadData(params: Map[String,Any]): (List[Stream[String]],Map[String,Any]) = {
     val (len: Int, numGroups: Int, numCols: Int) = (
       params.getOrElse("length", 1000).asInstanceOf[Int],
       params.getOrElse("numGroups", 50).asInstanceOf[Int],
@@ -105,44 +133,57 @@ object FakeDataLoader extends ColCompareDataLoader {
     ).toMap
     val gt: Set[(Int, Int)] = groups.flatMap(g => g.cross(g).toSeq).toSet
     val generatorsToUse: List[()=>String] = Random.shuffle(Config.acceptableGenerators).take(groups.length)
-    val res: List[List[String]] = (1 to len).map(
-      _ => (0 until numCols).toList.map(
-        i => generatorsToUse(groupMap(i)).apply()
-      )
-    ).toList
-    (res.transpose, params + ("gt" -> gt))
+    val res: List[Stream[String]] = (0 until numCols).toList.map(col => {
+      (1 to len).toStream.map(_ => generatorsToUse(groupMap(col))())
+    })
+    (res, params + ("gt" -> gt))
   }
 
-  override def loadGroundTruth(params: Map[String, Any]): Set[(Int,Int)] = {
-    params("gt").asInstanceOf[Set[(Int,Int)]]
+  override def loadGroundTruth(params: Map[String, Any]): (Set[(Int,Int)],Set[(Int,Int)]) = {
+    val res: Set[(Int, Int)] = params("gt").asInstanceOf[Set[(Int,Int)]]
+    (res, res)
   }
 }
 
+
 object ChemblDataLoader extends ColCompareDataLoader {
-  override def loadData(params: Map[String, Any]): (List[List[String]],Map[String,Any]) = {
+  object SemicolonFormat extends DefaultCSVFormat {
+    override val delimiter = ';'
+  }
+
+  override def loadData(params: Map[String, Any]): (List[Stream[String]],Map[String,Any]) = {
     val allFiles: Seq[File] = new File("/Users/ailyas/Documents/Datasets/SimPairs/chembl/").listFiles()
     val filesToUse: Seq[String] = params.getOrElse("cols", allFiles.map(_.getName)).asInstanceOf[Seq[String]]
     val paths: Seq[String] = allFiles.filter(f => filesToUse.contains(f.getName)).map(_.getAbsolutePath)
-    val allCols: List[(String, Seq[List[String]])] = paths.toList.map(p => (p.split("/").last, {
-      CsvParser.parse(params=CsvParams(separChar = ';'))(CsvFile(p))
-        .toColSeq
-        .map(_._2.toSeq.toList.map(_._2))
+    val allCols: List[(String, Seq[Stream[String]])] = paths.toList.map(p => (p.split("/").last, {
+      val csvStream: Stream[List[String]] = CSVReader.open(p)(SemicolonFormat).toStream
+      csvStream.head.indices map {
+        i => csvStream.map(_.apply(i))
+      }
     }))
-    val columnNames: List[String] = allCols flatMap { x => x._2.map(x._1 + "|" + _.head) }
-    val columns: List[List[String]] = allCols flatMap { _._2 } map { _.tail }
+    val _columnNames: List[String] = allCols flatMap { x => x._2.map(x._1 + "|" + _.head) }
+    val _columns: List[Stream[String]] = allCols flatMap { _._2 } map { _.tail }
+
+    val goodIndices: Set[Int] = _columns.indices.filter(i => _columns(i).take(100).count(_.length>0) > 50).toSet
+    val columnNames: List[String] = _columnNames.zipWithIndex.filter(x => goodIndices.contains(x._2)).map(_._1)
+    val columns: List[Stream[String]] = _columns.zipWithIndex.filter(x => goodIndices.contains(x._2)).map(_._1)
+
     (columns, params + ("colNames" -> columnNames))
   }
 
-  override def loadGroundTruth(params: Map[String, Any]): Set[(Int,Int)] = {
+  override def loadGroundTruth(params: Map[String, Any]): (Set[(Int,Int)], Set[(Int, Int)]) = {
     val columnNames: List[String] = params("colNames").asInstanceOf[List[String]]
     val threshold: Double = params.getOrElse("threshold",0.5).asInstanceOf[Double]
-    val gtCsv = CsvParser.parse(CsvFile("/Users/ailyas/Documents/Datasets/SimPairs/sim_pairs_chembl.csv"))
-    val gt: Seq[(Int,Int)] = gtCsv.toRowSeq.map {
-      case (i: Int, r: Series[Int, String]) => {
-        val indOne: Int = columnNames.indexOf(r.at(0) + "|" + r.at(1))
-        val indTwo: Int = columnNames.indexOf(r.at(2) + "|" + r.at(3))
-        if (r.last.get.toDouble > threshold && indOne > -1 && indTwo > -1) (indOne, indTwo) else null
-      }}.filter(_!=null)
-    gt.toSet
+    val gtCsv: Stream[List[String]] = CSVReader
+      .open("/Users/ailyas/Documents/Datasets/SimPairs/manual_labeled_chembl.csv")(SemicolonFormat)
+      .toStream
+    val rowToTuple: List[String] => (Int, Int) = (row: List[String]) => {
+      val firstIn: Int = columnNames.indexOf(row(1).split("/").last + "|" + row(3))
+      val secondIn: Int = columnNames.indexOf(row(2).split("/").last + "|" + row(4))
+      (firstIn, secondIn)
+    }
+    val positive: Set[(Int, Int)] = gtCsv.filter(_.last=="1").map(rowToTuple).filter(r => r._1 > -1 && r._2 > -1).toSet
+    val negative: Set[(Int, Int)] = gtCsv.filter(_.last=="0").map(rowToTuple).filter(r => r._1 > -1 && r._2 > -1).toSet
+    (positive, negative)
   }
 }

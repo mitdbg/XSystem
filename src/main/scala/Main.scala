@@ -1,4 +1,9 @@
+import java.util.Base64
+
+import com.github.tototoshi.csv.CSVWriter
 import org.sameersingh.scalaplot.Implicits._
+import org.sameersingh.scalaplot.Style.{LineType, PointType}
+import org.sameersingh.scalaplot.{Style, XYSeries}
 
 /**
   * Created by ilyas on 2017-02-18.
@@ -6,76 +11,118 @@ import org.sameersingh.scalaplot.Implicits._
 object Main {
 
     def main(args: Array[String]): Unit = {
-        //val (training, testing) = ForestCoverLoader.loadData(Map(
-        //    "trainPct" -> 0.9
-        //))
-        //runExperimentOutliers(training, testing, "outliers_1")
+        /*val (training, testing) = ForestCoverLoader.loadData(Map(
+            "trainNum" -> 200,
+            "testNum" -> 500,
+            "errorType" -> "apache2",
+            "outlierProp" -> 0.5,
+            "col" -> -1
+        ))*/
+        //runExperimentOutliers(List(training), List(testing), "forest_outlier")
         runExperimentColCompare(ChemblDataLoader)
-        //runExperimentMicrobench(runCL = true, runNH = true, runARL = false)
-
+        //runExperimentMicrobench(runCL = true, runNH = true, runARL = true)
     }
 
-    def runExperimentOutliers(training: List[(List[String], String)], testing: List[(List[String], String)], name: String) : Unit = {
-        val x = new XStruct().addNewLines(training.map(_._1.mkString(",")).toArray)
-        println(x.toString)
-        println("Classifying...")
-        val scores = testing.map {
-            case (s: List[String], l: String) => (x.computeOutlierScore(s.mkString(",")), l == s"$name.")
-        }
-        println("Analyzing...")
+    def runExperimentOutliers(trainings: Seq[Stream[(List[String], String)]], testings: Seq[Stream[(List[String], String)]], name: String) : Unit = {
+        assert(trainings.length == testings.length)
+        val scores = (trainings, testings).zipped.flatMap(
+            (training, testing) => {
+                val x = new XStruct().addNewLines(training.map(_._1.mkString(",")))
+                println(x.toString)
+                println("Classifying...")
+                val _scores = testing.map {
+                    case (s: List[String], l: String) => (x.computeOutlierScore(s.mkString(",")), l == s"$name.")
+                }.toList
+                val filteredScores = _scores.filter(_._1 < 50.0)
+                val maxScore: Double = filteredScores.map(_._1).sum/filteredScores.length
+                _scores.map(x => (x._1/maxScore, x._2))
+            }
+        ).toList
         val PR: Map[Double, Double] = (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap
+        val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
+        series.pointType = PointType.emptyO
+        series.lineType = LineType.Solid
+        series.lineWidth = 2.0
+        series.color = Style.Color.Red
+        series.pointSize = 1.0
         output(PNG("graphs/", name), xyChart(
-            PR.keys.toSeq.sorted -> (PR(_)),
+            series,
             x = Axis("Recall", range = (0.0,1.05)),
             y = Axis("Precision", range = (0.0,1.05))
         ))
     }
 
     def runExperimentColCompare(loader: ColCompareDataLoader): Unit = {
-        val learnStructs = (s:List[List[String]]) => s.map(x => new XStruct().addNewLines(x.toArray))
-        val (table: List[List[String]], newParams: Map[String, Any]) = loader.loadData(
+        val learnStructs = (s:Seq[Stream[String]]) => s.indices.map(i => {
+            println(i)
+            new XStruct().addNewLines(s(i))
+        })
+        val (table: Seq[Stream[String]], newParams: Map[String, Any]) = loader.loadData(
             Map(
                 "length" -> 10,
                 "numGroups" -> 3,
                 "numCols" -> 10,
                 "cols" -> List(
-                    "public.action_type.csv",
-                    "public.activity_stds_lookup.csv",
-                    "public.assay_parameters.csv",
-                    "public.assay_type.csv",
-                    "public.assays.csv",
-                    "public.atc_classification.csv",
-                    "public.binding_sites.csv",
                     "public.bio_component_sequences.csv",
+                    "public.biotherapeutics.csv",
+                    "public.atc_classification.csv",
+                    "public.cell_dictionary.csv",
+                    "public.target_relations.csv",
+                    "public.metabolism.csv",
+                    "public.ligand_eff.csv",
+                    "public.chembl_id_lookup.csv",
+                    "public.target_type.csv",
+                    "public.activity_stds_lookup.csv",
+                    "public.action_type.csv",
+                    "public.usan_stems.csv",
+                    "public.component_go.csv",
+                    "public.protein_class_synonyms.csv",
+                    "public.component_synonyms.csv",
                     "public.bioassay_ontology.csv",
-                    "public.biotherapeutic_components.csv",
-                    "public.biotherapeutics.csv"
+                    "public.molecule_dictionary.csv",
+                    "public.compound_records.csv",
+                    "public.assay_type.csv",
+                    "public.component_class.csv"
                 )
             )
         )
-        val gt: Set[(Int,Int)] = loader.loadGroundTruth(newParams + ("threshold" -> 0.5))
-        val xs: List[XStruct] = learnStructs(table)
+        val (positives: Set[(Int,Int)], negatives: Set[(Int, Int)]) = loader.loadGroundTruth(newParams + ("threshold" -> 0.1))
+        val xs: Seq[XStruct] = learnStructs(table)
         var scores: List[(Double, Boolean)] = List()
-        xs.indices.cross(xs.indices).foreach {
+        var _score: List[(Double, Boolean, (Int,Int))] = List()
+        negatives.foreach {
             case (i: Int, j: Int) => {
-                if (i < j) scores = scores :+ (10-XStruct.compareTwo(xs(i),xs(j)), gt.contains((i,j)))
+                val score = (10-XStruct.compareTwo(xs(i),xs(j)), false, (i, j))
+                scores = scores :+ (score._1, score._2)
+                _score = _score :+ score
+            }
+        }
+        positives.foreach {
+            case (i: Int, j: Int) => {
+                val score = (10-XStruct.compareTwo(xs(i),xs(j)), true, (i, j))
+                scores = scores :+ (score._1, score._2)
+                _score = _score :+ score
             }
         }
 
-        println(scores.mkString("\n"))
+        val PR: Map[Double, Double] = {
+            (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
+        }
 
-        val PR: Map[Double, Double] = (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap
-        output(PNG("graphs/", "column_sim"), xyChart(
-            PR.keys.toSeq.sorted -> (PR(_)),
-            x = Axis("Recall", range = (0.0,1.05)),
-            y = Axis("Precision", range = (0.0,1.05))
-        ))
+        val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
+        Utils.plotSeries(
+            series,
+            "graphs/",
+            "column_sim",
+            Axis("Recall", range = (0.0,1.01)),
+            Axis("Precision", range = (0.0,1.01))
+        )
     }
 
-    def runTimedExperiment(inputVals: Seq[Int], testLoader:Int=>Seq[String], imageName: String, xAxisTitle: String): Unit = {
+    def runTimedExperiment(inputVals: Seq[Int], testLoader:Int=>Stream[String], imageName: String, xAxisTitle: String): Unit = {
         val stats: Seq[Seq[Double]] = inputVals.map(iv => {
             val times = (1 to 30).map(_ => {
-                val test: Array[String] = testLoader(iv).toArray
+                val test: Stream[String] = testLoader(iv)
                 val initialTime: Long = System.nanoTime()
                 new XStruct().addNewLines(test).toString
                 System.nanoTime() - initialTime

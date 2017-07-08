@@ -17,6 +17,6 @@ libraryDependencies ++= Seq(
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.3"
 libraryDependencies += "org.sameersingh.scalaplot" % "scalaplot" % "0.0.4"
 libraryDependencies += "com.github.azakordonets" % "fabricator_2.11" % "2.1.4"
-libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.4"
+libraryDependencies += "com.github.tototoshi" % "scala-csv_2.10" % "1.3.4"
 
 scalaVersion := "2.11.1"

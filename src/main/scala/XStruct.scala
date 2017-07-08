@@ -9,14 +9,11 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
 
     def this() = this(List[String](),Map[BranchStruct,Long](),Config.branchingSeed,List[Double]())
 
-    def addNewLines(lines: Array[String]): XStruct = lines.foldLeft(this) {
-        (x: XStruct, l: String) => {
-            val (newX: XStruct, shouldStop: Boolean) = x.addLine(l)
-            if (!shouldStop)
-                newX
-            else
-                return newX
+    def addNewLines(lines: Stream[String]): XStruct = {
+        val scannedLines: Stream[(XStruct, Boolean)] = lines.filter(_.length>0).scanLeft((this,false)) {
+            (x: (XStruct, Boolean), l: String) => x._1.addLine(l)
         }
+        scannedLines.find(_._2).getOrElse(scannedLines.last)._1
     }
 
     def addLine(line: String): (XStruct, Boolean)  = {
@@ -25,7 +22,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             lines :+ line,
             _branches + (b.learnString(line) -> (_branches(b) + 1.toLong)) - b,
             branchingThreshold,
-            history :+ score
+            history :+ (if (_branches.size == branches.size) score else 0.0)
         ).trim, (history.length + 1) % Config.inc == 0 && Config.neededSampleSize(Vec(history : _*).stdev) < history.length)
     }
 

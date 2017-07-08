@@ -28,7 +28,7 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
 
     def scoreString(str: String): Double = {
         val tokens = tokenizeString(str).padTo(tokenStructs.length,"")
-        tokens.zip(tokenStructs).map((x: (String, TokenStruct)) => x._2.scoreToken(x._1)).sum/str.length
+        tokens.zip(tokenStructs).map((x: (String, TokenStruct)) => x._2.scoreToken(x._1)).sum/(str.length+0.01)
     }
 
     // Tokenize a string based on tokenizers
@@ -70,7 +70,7 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
             allScores = allScores ++ other.generateRandomStrings(Config.inc).map(s => scoreString(s))
             stdev = Vec(allScores : _*).stdev
         }
-        allScores.sum/allScores.length + 0.1
+        allScores.sum/(allScores.length+0.1) + 0.1
     }
 
     // Reset the done_adding counter for all of the tokens

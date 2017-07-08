@@ -3,6 +3,9 @@ import java.util.Calendar
 
 import fabricator.Fabricator
 import org.apache.commons.math3.stat.inference.ChiSquareTest
+import org.sameersingh.scalaplot.Style.{LineType, PointType}
+import org.sameersingh.scalaplot.{NumericAxis, Style, XYSeries}
+import org.sameersingh.scalaplot.Implicits._
 
 import scala.util.matching.Regex
 
@@ -10,14 +13,14 @@ import scala.util.matching.Regex
   * Created by ilyas on 2017-02-18.
   */
 object Config {
-    val maxBranches: Int = 7
-    val branchingSeed: Double = 0.5 // Disabling branching for now
+    val maxBranches: Int = 3
+    val branchingSeed: Double = 0.01
     val specChars: String = ((0 to 47)++(58 to 64)++(91 to 96)++(123 to 255)).map(_.toChar).mkString("")//"[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\ '’‘ ̣ ̃]".r
     val uppercaseChars: Set[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray.toSet
     val lowercaseChars: Set[Char] = "abcdefghijklmnopqrstuvwxyz".toCharArray.toSet
     val numbers: Set[Char] = "0123456789".toCharArray.toSet
-    val inc : Int = 30
-    val capturePct: Double = 0.85
+    val inc : Int = 100
+    val capturePct: Double = 0.8
     val acceptableGenerators: List[()=>String] = List(
         () => Fabricator.calendar().randomDate.asString,
         () => Fabricator.calendar().time24h,
@@ -31,7 +34,7 @@ object Config {
         () => Fabricator.internet().ipv6
     )
 
-    def neededSampleSize(std: Double): Double = Math.pow(1.96*std/0.5, 2.0)
+    def neededSampleSize(std: Double): Double = Math.pow(1.96*std/0.05, 2.0)
 }
 
 object Utils {
@@ -61,5 +64,18 @@ object Utils {
     def formattedDate(): String = {
         val format = new SimpleDateFormat("yy_MM_dd_hh_mm_ss")
         format.format(Calendar.getInstance().getTime)
+    }
+
+    def plotSeries(series: XYSeries, path: String, name: String, x: NumericAxis, y: NumericAxis): Unit = {
+        series.pointType = PointType.emptyO
+        series.lineType = LineType.Solid
+        series.lineWidth = 2.0
+        series.color = Style.Color.Red
+        series.pointSize = 1.0
+        output(PNG(path, name), xyChart(
+            series,
+            x = x,
+            y = y
+        ))
     }
 }
