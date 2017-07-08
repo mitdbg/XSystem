@@ -3,7 +3,7 @@ import java.util.Base64
 import com.github.tototoshi.csv.CSVWriter
 import org.sameersingh.scalaplot.Implicits._
 import org.sameersingh.scalaplot.Style.{LineType, PointType}
-import org.sameersingh.scalaplot.{Style, XYSeries}
+import org.sameersingh.scalaplot.{Style, XYData, XYSeries}
 
 /**
   * Created by ilyas on 2017-02-18.
@@ -11,15 +11,15 @@ import org.sameersingh.scalaplot.{Style, XYSeries}
 object Main {
 
     def main(args: Array[String]): Unit = {
-        /*val (training, testing) = ForestCoverLoader.loadData(Map(
+        val (training, testing) = KDDLoader.loadData(Map(
             "trainNum" -> 200,
             "testNum" -> 500,
-            "errorType" -> "apache2",
+            "errorType" -> "snmpguess",
             "outlierProp" -> 0.5,
             "col" -> -1
-        ))*/
-        //runExperimentOutliers(List(training), List(testing), "forest_outlier")
-        runExperimentColCompare(ChemblDataLoader)
+        ))
+        runExperimentOutliers(List(training), List(testing), "snmpguess")
+        //runExperimentColCompare(FakeDataLoader)
         //runExperimentMicrobench(runCL = true, runNH = true, runARL = true)
     }
 
@@ -38,18 +38,18 @@ object Main {
                 _scores.map(x => (x._1/maxScore, x._2))
             }
         ).toList
-        val PR: Map[Double, Double] = (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap
+        val PR: Map[Double, Double] = {
+            (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
+        }
+
         val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
-        series.pointType = PointType.emptyO
-        series.lineType = LineType.Solid
-        series.lineWidth = 2.0
-        series.color = Style.Color.Red
-        series.pointSize = 1.0
-        output(PNG("graphs/", name), xyChart(
-            series,
-            x = Axis("Recall", range = (0.0,1.05)),
-            y = Axis("Precision", range = (0.0,1.05))
-        ))
+        Utils.plotSeries(
+            Map("" -> series),
+            "graphs/",
+            name,
+            Axis("Recall", range = (0.0,1.01)),
+            Axis("Precision", range = (0.0,1.01))
+        )
     }
 
     def runExperimentColCompare(loader: ColCompareDataLoader): Unit = {
@@ -111,9 +111,9 @@ object Main {
 
         val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
         Utils.plotSeries(
-            series,
+            Map("" -> series),
             "graphs/",
-            "column_sim",
+            "column_sim_fake",
             Axis("Recall", range = (0.0,1.01)),
             Axis("Precision", range = (0.0,1.01))
         )
@@ -131,11 +131,15 @@ object Main {
         })
         val xVals: Seq[Double] = inputVals.map(_.toDouble)
         val yVals: Seq[Double] = stats.flatten
-        output(PNG("graphs/", imageName + Utils.formattedDate()), xyChart(
-            xVals -> stats.transpose.map(Y(_)),
-            x = Axis(xAxisTitle, range=(xVals.min,xVals.max)),
-            y = Axis("Time (s)", range=(0.0,yVals.max*3.0))
-        ))
+        val seriesData: XYData = xVals -> stats.transpose.map(Y(_))
+        Utils.plotSeries(
+            Seq("50th %ile", "95th %ile", "99th %ile").zip(seriesData.serieses).toMap,
+            "graphs/",
+            imageName + Utils.formattedDate(),
+            Axis(xAxisTitle, range=(xVals.min,xVals.max)),
+            Axis("Time (s)", range=(0.0,yVals.max*3.0))
+
+        )
     }
 
     def runExperimentMicrobench(runCL: Boolean, runNH: Boolean, runARL: Boolean): Unit = {

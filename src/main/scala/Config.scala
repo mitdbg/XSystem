@@ -4,17 +4,15 @@ import java.util.Calendar
 import fabricator.Fabricator
 import org.apache.commons.math3.stat.inference.ChiSquareTest
 import org.sameersingh.scalaplot.Style.{LineType, PointType}
-import org.sameersingh.scalaplot.{NumericAxis, Style, XYSeries}
+import org.sameersingh.scalaplot._
 import org.sameersingh.scalaplot.Implicits._
-
-import scala.util.matching.Regex
 
 /**
   * Created by ilyas on 2017-02-18.
   */
 object Config {
-    val maxBranches: Int = 3
-    val branchingSeed: Double = 0.01
+    val maxBranches: Int = 7
+    val branchingSeed: Double = 0.1
     val specChars: String = ((0 to 47)++(58 to 64)++(91 to 96)++(123 to 255)).map(_.toChar).mkString("")//"[-~!@#$^%&*()_+={}\\\\[\\\\]|;:\\\"'`<,>.?/\\\\\\\\ '’‘ ̣ ̃]".r
     val uppercaseChars: Set[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray.toSet
     val lowercaseChars: Set[Char] = "abcdefghijklmnopqrstuvwxyz".toCharArray.toSet
@@ -66,16 +64,23 @@ object Utils {
         format.format(Calendar.getInstance().getTime)
     }
 
-    def plotSeries(series: XYSeries, path: String, name: String, x: NumericAxis, y: NumericAxis): Unit = {
-        series.pointType = PointType.emptyO
-        series.lineType = LineType.Solid
-        series.lineWidth = 2.0
-        series.color = Style.Color.Red
-        series.pointSize = 1.0
-        output(PNG(path, name), xyChart(
-            series,
+    def plotSeries(serieses: Map[String, XYSeries], path: String, name: String, x: NumericAxis, y: NumericAxis): Unit = {
+        val colors: List[Style.Color.Type] = List(Style.Color.RoyalBlue, Style.Color.Red, Style.Color.Green)
+        val styledSeries: Seq[XYSeries] = serieses.toSeq.zipWithIndex.map(s => {
+            val series = new MemXYSeries(s._1._2.points.toSeq, s._1._1)
+            series.pointType = PointType.emptyO
+            series.lineType = LineType.Solid
+            series.lineWidth = 2.0
+            series.color = colors(s._2)
+            series.pointSize = 1.0
+            series
+        })
+        val chart: XYChart = xyChart(
+            styledSeries,
             x = x,
             y = y
-        ))
+        )
+        chart.showLegend = serieses.size > 1
+        output(PNG(path, name), chart)
     }
 }

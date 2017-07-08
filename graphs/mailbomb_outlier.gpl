@@ -1,0 +1,41 @@
+# Chart settings
+unset key
+set terminal png enhanced 
+
+set terminal png enhanced 
+set output "mailbomb.png"
+# XYChart settings
+set nologscale
+set xr [0.0:1.01] noreverse
+set yr [0.0:1.01] noreverse
+set xlabel "Recall"
+set ylabel "Precision"
+# XYData Plotting
+plot \
+'-'  using 1:2 title "" with linespoints linecolor rgbcolor "royalblue" pointsize 1.000000 pointtype 6 linewidth 2.000000 
+# 
+0.0	1.0
+2.0E-4	0.5
+6.0E-4	0.75
+0.001	0.8333333333333334
+0.0018	0.9
+0.0202	0.9805825242718447
+0.0316	0.9875
+0.0322	0.9877300613496932
+0.0528	0.9924812030075187
+0.0688	0.9913544668587896
+0.0704	0.9832402234636871
+0.0724	0.9679144385026738
+0.081	0.9529411764705882
+0.0912	0.9306122448979591
+0.1036	0.8961937716262975
+0.1122	0.8617511520737328
+0.389	0.9315134099616859
+0.9996	0.9602305475504322
+1.0	0.0
+end
+
+unset output
+# Wrapup
+set terminal dumb
+refresh

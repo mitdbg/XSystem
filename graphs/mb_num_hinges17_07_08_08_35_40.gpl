@@ -1,0 +1,43 @@
+# Chart settings
+set key right center
+set terminal png enhanced 
+
+set terminal png enhanced 
+set output "mb_num_hinges17_07_08_08_35_40.png"
+# XYChart settings
+set nologscale
+set xr [2.0:14.0] noreverse
+set yr [0.0:0.5671884869999999] noreverse
+set xlabel "Number of Hinges"
+set ylabel "Time (s)"
+# XYData Plotting
+plot \
+'-'  using 1:2 title "50th %ile" with linespoints linecolor rgbcolor "royalblue" pointsize 1.000000 pointtype 6 linewidth 2.000000 , \
+'-'  using 1:2 title "95th %ile" with linespoints linecolor rgbcolor "red" pointsize 1.000000 pointtype 6 linewidth 2.000000 , \
+'-'  using 1:2 title "99th %ile" with linespoints linecolor rgbcolor "web-green" pointsize 1.000000 pointtype 6 linewidth 2.000000 
+# 50th %ile
+2.0	0.043151284
+5.0	0.070915516
+8.0	0.100384621
+11.0	0.137946874
+14.0	0.176277717
+end
+# 95th %ile
+2.0	0.082778457
+5.0	0.081473209
+8.0	0.112888687
+11.0	0.151382073
+14.0	0.188216849
+end
+# 99th %ile
+2.0	0.08489319
+5.0	0.083442618
+8.0	0.114217497
+11.0	0.152829074
+14.0	0.189062829
+end
+
+unset output
+# Wrapup
+set terminal dumb
+refresh
