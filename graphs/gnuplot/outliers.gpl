@@ -1,6 +1,6 @@
 # Chart settings
 set key bottom left
-set terminal postscript eps enhanced color "Helvetica" 16
+set terminal postscript eps enhanced color "Helvetica" 20
 set output "eps/outliers.eps"
 # XYChart settings
 set nologscale
@@ -10,10 +10,10 @@ set yr [0.0:1.05] noreverse
 set xlabel "Recall"
 set ylabel "Precision"
 # XYData Plotting
-plot "data/apache2_outlier.data" using 1:2 title "KDD (Apache2)" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 1, \
-"data/mailbomb_outlier.data" using 1:2 title "KDD (Mailbomb)" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 2, \
-"data/snmpguess_outlier.data" using 1:2 title "KDD (Snmpguess)" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 3, \
-"data/forest_outlier.data" using 1:2 title "Forest Cover" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 4
+plot "data/apache2_outlier.data" using 1:2 title "KDD (Apache2)" with linespoints pointsize 1.000000 pointtype 7 dashtype 1 linewidth 7, \
+"data/mailbomb_outlier.data" using 1:2 title "KDD (Mailbomb)" with linespoints pointsize 1.000000 pointtype 7 dashtype 2 linewidth 7, \
+"data/snmpguess_outlier.data" using 1:2 title "KDD (Snmpguess)" with linespoints pointsize 1.000000 pointtype 7 dashtype 3 linewidth 7, \
+"data/forest_outlier.data" using 1:2 title "Forest Cover" with linespoints pointsize 1.000000 pointtype 7 dashtype 4 linewidth 7
 
 unset output
 # Wrapup

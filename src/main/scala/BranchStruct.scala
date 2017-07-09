@@ -12,6 +12,10 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
     val lines : Array[String] = if(Config.tts) _l else Array()
     val tokenStructs : Array[TokenStruct] = _tks
     val tokenizers : Array[String] = _tknzs
+    val branchStringGenerator : Stream[String] = Utils.mergeStreams(
+        tokenStructs.zipWithIndex.map(x => x._1.tokenStringGenerator.map(_ + "-" + x._2))
+    )
+    val tokenizerStringGenerator : Stream[String] = tokenizers.zipWithIndex.map(t => t._1 + "-H" + t._2).toStream
     checkRep()
 
     def this(s : String) =

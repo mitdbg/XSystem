@@ -1,6 +1,6 @@
 # Chart settings
-unset key
-set terminal postscript eps enhanced color "Helvetica" 16
+set key bottom left
+set terminal postscript eps enhanced color "Helvetica" 20
 set output "eps/column_sim.eps"
 # XYChart settings
 set nologscale
@@ -10,7 +10,8 @@ set xlabel "Recall"
 set ylabel "Precision"
 # XYData Plotting
 plot \
-'data/column_sim.data'  using 1:2 title "" with linespoints pointsize 1.000000 pointtype 7 linewidth 2.000000 
+'data/column_sim.data'  using 1:2 title "All-Pairs Comparison" with linespoints pointsize 1.000000 pointtype 7 linewidth 7 dashtype 1, \
+'data/lsh.data' using 1:2 title "MinHash LSH" with linespoints pointsize 1 pointtype 7 linewidth 7 dashtype 2
 
 unset output
 # Wrapup

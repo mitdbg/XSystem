@@ -17,6 +17,9 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
   private final val doneAdding : Boolean = if (tryToStop) _doneAdding else false
   private final val history : Seq[Double] = if (tryToStop) _history else List()
   private final val stdDev : Double = _stdDev
+  val tokenStringGenerator: Stream[String] = Utils.mergeStreams(
+    symbolStructs.zipWithIndex.map(x => x._1.symbolStringGenerator.map(_ + "-" + x._2))
+  )
   val archive : Seq[Double] = if(tryToStop) _archive else List()
 
   val scoreSoFar: Double = archive.sum/archive.length

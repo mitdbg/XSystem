@@ -1,11 +1,11 @@
 # Chart settings
 set key right top
-set terminal postscript eps enhanced color "Helvetica" 16
+set terminal postscript eps enhanced color "Helvetica" 20
 set output "eps/row_length_microbench.eps"
 # XYChart settings
 set nologscale
 set xr [1.0:100.0] noreverse
-set yr [0.0:6.9804695699999995] noreverse
+set yr [0.0:3] noreverse
 set xlabel "Average Row Length"
 set ylabel "Time (s)"
 # XYData Plotting

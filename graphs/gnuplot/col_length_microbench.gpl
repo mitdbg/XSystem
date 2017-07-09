@@ -1,11 +1,11 @@
 # Chart settings
 set key right top
-set terminal postscript eps enhanced color "Helvetica" 16
+set terminal postscript eps enhanced color "Helvetica" 20
 set output "eps/col_length_microbench.eps"
 # XYChart settings
 set nologscale
 set xr [100.0:10000.0] noreverse
-set yr [0.0:3] noreverse
+set yr [0.0:1.5] noreverse
 set xlabel "Number of Tuples"
 set ylabel "Time (s)"
 # XYData Plotting

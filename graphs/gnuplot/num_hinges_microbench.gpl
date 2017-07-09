@@ -1,11 +1,11 @@
 # Chart settings
 set key right top
-set terminal postscript eps enhanced color "Helvetica" 16
+set terminal postscript eps enhanced color "Helvetica" 20
 set output "eps/num_hinges_microbench.eps"
 # XYChart settings
 set nologscale
 set xr [2.0:14.0] noreverse
-set yr [0.0:0.5671884869999999] noreverse
+set yr [0.0:0.4] noreverse
 set xlabel "Number of Hinges"
 set ylabel "Time (s)"
 # XYData Plotting

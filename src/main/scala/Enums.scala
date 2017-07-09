@@ -29,6 +29,7 @@ sealed trait XClass {
   def domain: Iterable[Char]
   def isClass: Boolean = true
   def randomRep: String = domain.toList(Random.nextInt(domain.size)).toString
+  def lshDomain: Set[String] = Set(rep)
   override def toString: String = rep
 }
 case object X_UCC extends XClass { val (rep, domain) = ("\\W", Config.uppercaseChars) }
@@ -44,4 +45,5 @@ case class X_OR(cs: List[String]) extends XClass {
   val rep: String = "(" + cs.mkString("|") + ")"
   val domain: Iterable[Char] = cs.map(_.charAt(0))
   override val isClass = false
+  override def lshDomain: Set[String] = domain.map((d: Char) => d.toString).toSet
 }

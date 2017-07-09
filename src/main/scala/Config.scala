@@ -65,6 +65,16 @@ object Utils {
         format.format(Calendar.getInstance().getTime)
     }
 
+    // Round-robin iterator
+    def mergeStreams[T](streams: Seq[Stream[T]], next: Int = 0, done: Boolean = true): Stream[T] =
+        if (streams.isEmpty) Stream.empty
+        else (streams.length - next, streams(next), done) match {
+            case (1, Stream.Empty, true) => Stream.empty
+            case (1, Stream.Empty, false) => mergeStreams(streams, (next+1) % streams.length)
+            case (_, Stream.Empty, _) => mergeStreams(streams, (next+1) % streams.length, done = done)
+            case (_, s: Stream[T], _) => s.head #:: mergeStreams(streams.updated(next, s.tail), (next+1) % streams.length, done = false)
+        }
+
     def plotSeries(serieses: Map[String, XYSeries], path: String, name: String, x: NumericAxis, y: NumericAxis): Unit = {
         val colors: List[Style.Color.Type] = List(Style.Color.RoyalBlue, Style.Color.Red, Style.Color.Green)
         val styledSeries: Seq[XYSeries] = serieses.toSeq.zipWithIndex.map(s => {
@@ -82,7 +92,7 @@ object Utils {
             y = y
         )
         chart.showLegend = serieses.size > 1
-        output(PNG(path, name), chart)
+        output(GUI, chart)
     }
 
     // Calculate Precision and Recall

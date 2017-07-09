@@ -6,6 +6,9 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
     private final val lines : List[String] = if (Config.tts) _lines else List()
     private final val branchingThreshold : Double = _bThresh
     private final val history: Seq[Double] = if(Config.tts) _history else List()
+    val tokensGenerator: Stream[String] = Utils.mergeStreams(branches.keys.toSeq.map(_.branchStringGenerator))
+    val hingesGenerator: Stream[String] = Utils.mergeStreams(branches.keys.toSeq.map(_.tokenizerStringGenerator))
+    val minHashStringGenerator: Stream[String] = Utils.mergeStreams(Seq(tokensGenerator, hingesGenerator ++ hingesGenerator))
 
     def this() = this(List[String](),Map[BranchStruct,Long](),Config.branchingSeed,List[Double]())
 
@@ -57,6 +60,15 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             List[Double]()
         )
     }
+
+    def generateStrings: Stream[String] = {
+        val randomIndex: Double = Math.random()
+        val branchesAndFreqs: Array[(BranchStruct, Long)] = branches.toArray
+        val randomBranch: Int = Vec(branchesAndFreqs.map(_._2) : _*) match {
+            case x => (x.cumSum/x.sum).toSeq.zipWithIndex.find(_._1 > randomIndex).get._2
+        }
+        branchesAndFreqs(randomBranch)._1.generateRandomStrings(1).head
+    } #:: generateStrings
 
     // Comparison
     def subsetScore(other: XStruct): Double = branches.map {

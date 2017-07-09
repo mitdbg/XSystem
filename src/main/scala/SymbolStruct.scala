@@ -24,6 +24,7 @@ class SymbolStruct(_charHist: Map[Char,Long], _ccHist: Map[CharClass, List[Char]
             case _ => if (!Utils.significant((Utils.asciiMap ++ charHistogram).values.toSeq)) X_ANY else maxSymbol.toXClass
         }
     }
+    val symbolStringGenerator: Stream[String] = representation.lshDomain.toStream
 
     def this(c: Char) = this(
         Map[Char,Long](c -> 1),

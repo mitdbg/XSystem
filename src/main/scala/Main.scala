@@ -1,29 +1,22 @@
-import java.util.Base64
-
 import akka.actor.{ActorRef, ActorSystem}
 import com.github.tototoshi.csv.{CSVReader, CSVWriter}
-import fabricator.Fabricator
 import org.sameersingh.scalaplot.Implicits._
-import org.sameersingh.scalaplot.Style.{LineType, PointType}
-import org.sameersingh.scalaplot.{Style, XYData, XYSeries}
+import org.sameersingh.scalaplot.{XYData, XYSeries}
 
-/**
-  * Created by ilyas on 2017-02-18.
-  */
 object Main {
 
     def main(args: Array[String]): Unit = {
-        val (training, testing) = KDDLoader.loadData(Map(
+        /*val (training, testing) = KDDLoader.loadData(Map(
             "trainNum" -> 200,
             "testNum" -> 500,
             "errorType" -> "snmpguess",
             "outlierProp" -> 0.5,
             "col" -> -1
-        ))
+        ))*/
         //runExperimentOutliers(List(training), List(testing), "snmpguess")
-        //runExperimentColCompare(FakeDataLoader)
+        runExperimentColCompare(ChemblDataLoader)
         //runExperimentMicrobench(runCL = true, runNH = true, runARL = true)
-        runExperimentParallel()
+        //runExperimentParallel()
     }
 
     def runExperimentOutliers(trainings: Seq[Stream[(List[String], String)]], testings: Seq[Stream[(List[String], String)]], name: String) : Unit = {
@@ -55,7 +48,39 @@ object Main {
         )
     }
 
-    def runExperimentColCompare(loader: ColCompareDataLoader): Unit = {
+    def compareColsAllPairs(positives: Set[(Int,Int)], negatives: Set[(Int, Int)], xs: Seq[XStruct]): XYSeries = {
+        var scores: List[(Double, Boolean)] = List()
+        var _score: List[(Double, Boolean, (Int,Int))] = List()
+        negatives.foreach {
+            case (i: Int, j: Int) => {
+                val score = (10-XStruct.compareTwo(xs(i),xs(j)), false, (i, j))
+                scores = scores :+ (score._1, score._2)
+                _score = _score :+ score
+            }
+        }
+        positives.foreach {
+            case (i: Int, j: Int) => {
+                val score = (10-XStruct.compareTwo(xs(i),xs(j)), true, (i, j))
+                scores = scores :+ (score._1, score._2)
+                _score = _score :+ score
+            }
+        }
+
+        val PR: Map[Double, Double] = {
+            (0.0 until 100.0 by 0.01).map(Utils.calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
+        }
+        PR.keys.toSeq.sorted -> (PR(_))
+    }
+
+    def compareColsLSH(positives: Set[(Int,Int)], negatives: Set[(Int, Int)], xs: Seq[XStruct]): Unit = {
+        val generators : Seq[Stream[String]] = xs.map(x => Stream.continually(x.minHashStringGenerator).flatten)
+        val writer = CSVWriter.open("generatedStrings.csv")
+        (0 until 1000).foreach(
+            i => writer.writeRow(generators.map(_.apply(i)))
+        )
+    }
+
+    def runExperimentColCompare(loader: ColCompareDataLoader, lsh: Boolean = true): Unit = {
         val learnStructs = (s:Seq[Stream[String]]) => s.indices.map(i => {
             println(i)
             new XStruct().addNewLines(s(i))
@@ -91,35 +116,16 @@ object Main {
         )
         val (positives: Set[(Int,Int)], negatives: Set[(Int, Int)]) = loader.loadGroundTruth(newParams + ("threshold" -> 0.1))
         val xs: Seq[XStruct] = learnStructs(table)
-        var scores: List[(Double, Boolean)] = List()
-        var _score: List[(Double, Boolean, (Int,Int))] = List()
-        negatives.foreach {
-            case (i: Int, j: Int) => {
-                val score = (10-XStruct.compareTwo(xs(i),xs(j)), false, (i, j))
-                scores = scores :+ (score._1, score._2)
-                _score = _score :+ score
-            }
-        }
-        positives.foreach {
-            case (i: Int, j: Int) => {
-                val score = (10-XStruct.compareTwo(xs(i),xs(j)), true, (i, j))
-                scores = scores :+ (score._1, score._2)
-                _score = _score :+ score
-            }
-        }
+        compareColsLSH(positives, negatives, xs)
+        //val seriesAllPairs: XYSeries = compareColsAllPairs(positives, negatives, xs)
 
-        val PR: Map[Double, Double] = {
-            (0.0 until 100.0 by 0.01).map(Utils.calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
-        }
-
-        val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
-        Utils.plotSeries(
-            Map("" -> series),
+        /*Utils.plotSeries(
+            Map("" -> seriesAllPairs),
             "graphs/",
             "column_sim_fake",
             Axis("Recall", range = (0.0,1.01)),
             Axis("Precision", range = (0.0,1.01))
-        )
+        )*/
     }
 
     def runTimedExperiment(inputVals: Seq[Int], testLoader:Int=>Stream[String], imageName: String, xAxisTitle: String): Unit = {
