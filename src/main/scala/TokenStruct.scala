@@ -12,11 +12,12 @@ class TokenStruct(_symbolStructs : Seq[SymbolStruct] = Seq(),
                   _archive : Seq[Double] = Seq()
                  )
 {
+  private final val tryToStop: Boolean = Config.tts
   private final val symbolStructs : Seq[SymbolStruct] = _symbolStructs
-  private final val doneAdding : Boolean = _doneAdding
-  private final val history : Seq[Double] = _history
+  private final val doneAdding : Boolean = if (tryToStop) _doneAdding else false
+  private final val history : Seq[Double] = if (tryToStop) _history else List()
   private final val stdDev : Double = _stdDev
-  val archive : Seq[Double] = _archive
+  val archive : Seq[Double] = if(tryToStop) _archive else List()
 
   val scoreSoFar: Double = archive.sum/archive.length
   val representation: Seq[XClass] = symbolStructs.map(_.representation)

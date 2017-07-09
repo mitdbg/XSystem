@@ -18,6 +18,7 @@ object Config {
     val lowercaseChars: Set[Char] = "abcdefghijklmnopqrstuvwxyz".toCharArray.toSet
     val numbers: Set[Char] = "0123456789".toCharArray.toSet
     val inc : Int = 100
+    val tts : Boolean = true
     val capturePct: Double = 0.8
     val acceptableGenerators: List[()=>String] = List(
         () => Fabricator.calendar().randomDate.asString,
@@ -82,5 +83,13 @@ object Utils {
         )
         chart.showLegend = serieses.size > 1
         output(PNG(path, name), chart)
+    }
+
+    // Calculate Precision and Recall
+    def calcPR(scores: List[(Double,Boolean)],threshold: Double): (Double, Double) = {
+        val tp = scores.filter(_._1 > threshold).count(_._2).toDouble
+        val fp = scores.filter(_._1 > threshold).count(!_._2).toDouble
+        val fn = scores.filter(_._1 <= threshold).count(_._2).toDouble
+        (tp/(tp+fn), tp/(tp+fp))
     }
 }

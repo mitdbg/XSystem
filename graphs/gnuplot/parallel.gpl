@@ -1,0 +1,18 @@
+# Chart settings
+unset key
+set terminal postscript eps enhanced color "Helvetica" 16
+set output "eps/parallel.eps"
+# XYChart settings
+set nologscale
+set xr [1.0:5.05] noreverse
+set yr [0.0:150.00] noreverse
+set xlabel "Number of Processes"
+set ylabel "Time (s)"
+# XYData Plotting
+plot \
+'data/parallel.data'  using 1:2 title "" with linespoints pointsize 1.000000 pointtype 7 linewidth 2.000000 
+
+unset output
+# Wrapup
+set terminal dumb
+refresh

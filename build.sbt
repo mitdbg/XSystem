@@ -14,6 +14,11 @@ libraryDependencies ++= Seq(
 
 )
 
+libraryDependencies ++= Seq(
+    "com.typesafe.akka" %% "akka-actor" % "2.5.3",
+    "com.typesafe.akka" %% "akka-testkit" % "2.5.3" % Test
+)
+
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.3"
 libraryDependencies += "org.sameersingh.scalaplot" % "scalaplot" % "0.0.4"
 libraryDependencies += "com.github.azakordonets" % "fabricator_2.11" % "2.1.4"

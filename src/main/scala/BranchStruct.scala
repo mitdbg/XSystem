@@ -9,7 +9,7 @@ import scala.util.matching.Regex
   * Immutable
   */
 class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStruct]) {
-    val lines : Array[String] = _l
+    val lines : Array[String] = if(Config.tts) _l else Array()
     val tokenStructs : Array[TokenStruct] = _tks
     val tokenizers : Array[String] = _tknzs
     checkRep()
@@ -23,7 +23,7 @@ class BranchStruct(_l: Array[String], _tknzs:Array[String], _tks:Array[TokenStru
             assert(false)
         }
         assert(tokenizers.last.equals("$"))
-        assert(lines.nonEmpty)
+        //assert(lines.nonEmpty)
     }
 
     def scoreString(str: String): Double = {

@@ -3,18 +3,20 @@ import scala.util.control.Breaks._
 
 class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh: Double, _history: Seq[Double]) {
     private final val branches : Map[BranchStruct,Long] = _branches
-    private final val lines : List[String] = _lines
+    private final val lines : List[String] = if (Config.tts) _lines else List()
     private final val branchingThreshold : Double = _bThresh
-    private final val history: Seq[Double] = _history
+    private final val history: Seq[Double] = if(Config.tts) _history else List()
 
     def this() = this(List[String](),Map[BranchStruct,Long](),Config.branchingSeed,List[Double]())
 
-    def addNewLines(lines: Stream[String]): XStruct = {
+    def addNewLines(lines: Stream[String]): XStruct = if (Config.tts) {
         val scannedLines: Stream[(XStruct, Boolean)] = lines.filter(_.length>0).scanLeft((this,false)) {
             (x: (XStruct, Boolean), l: String) => x._1.addLine(l)
         }
         scannedLines.find(_._2).getOrElse(scannedLines.last)._1
-    }
+    } else lines.filter(_.length>0).foldLeft((this,false)) {
+            (x: (XStruct, Boolean), l: String) => x._1.addLine(l)
+    }._1
 
     def addLine(line: String): (XStruct, Boolean)  = {
         val (_branches: Map[BranchStruct,Long], b: BranchStruct, score: Double) = findRightBranch(line)
@@ -66,6 +68,13 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
         case (b: BranchStruct, c: Long) => b.scoreString(str) * (c.toDouble / branches.values.sum)
     }.sum
 
+    def mergeWith(other: XStruct): XStruct = new XStruct(
+        List(),
+        this.branches ++ other.branches,
+        0.0,
+        List()
+    ).trim
+
     override def toString: String = branches.map(_.toString).mkString("|")
 
     implicit class Crossable[X](xs: Traversable[X]) {
@@ -77,4 +86,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
 
 object XStruct {
     def compareTwo(x: XStruct, y: XStruct): Double = (x.subsetScore(y) + y.subsetScore(x))/2
+    def mergeMultiple(xs: Seq[XStruct]): XStruct = xs.foldLeft(new XStruct())((z: XStruct, n: XStruct) => {
+        z.mergeWith(n)
+    })
 }

@@ -1,6 +1,8 @@
 import java.util.Base64
 
-import com.github.tototoshi.csv.CSVWriter
+import akka.actor.{ActorRef, ActorSystem}
+import com.github.tototoshi.csv.{CSVReader, CSVWriter}
+import fabricator.Fabricator
 import org.sameersingh.scalaplot.Implicits._
 import org.sameersingh.scalaplot.Style.{LineType, PointType}
 import org.sameersingh.scalaplot.{Style, XYData, XYSeries}
@@ -18,9 +20,10 @@ object Main {
             "outlierProp" -> 0.5,
             "col" -> -1
         ))
-        runExperimentOutliers(List(training), List(testing), "snmpguess")
+        //runExperimentOutliers(List(training), List(testing), "snmpguess")
         //runExperimentColCompare(FakeDataLoader)
         //runExperimentMicrobench(runCL = true, runNH = true, runARL = true)
+        runExperimentParallel()
     }
 
     def runExperimentOutliers(trainings: Seq[Stream[(List[String], String)]], testings: Seq[Stream[(List[String], String)]], name: String) : Unit = {
@@ -39,7 +42,7 @@ object Main {
             }
         ).toList
         val PR: Map[Double, Double] = {
-            (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
+            (0.0 until 100.0 by 0.01).map(Utils.calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
         }
 
         val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
@@ -106,7 +109,7 @@ object Main {
         }
 
         val PR: Map[Double, Double] = {
-            (0.0 until 100.0 by 0.01).map(calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
+            (0.0 until 100.0 by 0.01).map(Utils.calcPR(scores,_)).filter(x => !x._1.isNaN & !x._2.isNaN).toMap + (0.0 -> 1.0) + (1.0 -> 0.0)
         }
 
         val series: XYSeries = PR.keys.toSeq.sorted -> (PR(_))
@@ -163,11 +166,18 @@ object Main {
         )
     }
 
-    def calcPR(scores: List[(Double,Boolean)],threshold: Double): (Double, Double) = {
-        val tp = scores.filter(_._1 > threshold).count(_._2).toDouble
-        val fp = scores.filter(_._1 > threshold).count(!_._2).toDouble
-        val fn = scores.filter(_._1 <= threshold).count(_._2).toDouble
-        (tp/(tp+fn), tp/(tp+fp))
+    def runExperimentParallel(): Unit = {
+        val system: ActorSystem = ActorSystem("XStructSystem")
+        val numGroups: List[Int] = List(5)
+        val column: List[String] = CSVReader.open("/Users/ailyas/Documents/Datasets/Parallel/test.csv").all().transpose.head.take(20000)
+        numGroups.foreach((ng: Int) => {
+            val groupedColumn: List[List[String]] = column.grouped(column.length/ng).toList
+            val groupedStreams: List[Stream[String]] = groupedColumn.map(_.toStream)
+            val consolidator: ActorRef = system.actorOf(Consolidator.props(ng))
+            val learners: Seq[ActorRef] = (1 to ng).map(_ => system.actorOf(ParLearner.props(consolidator)))
+            (0 until ng).foreach(i => learners(i) ! groupedStreams(i))
+
+        })
     }
 
     implicit class Crossable[X](xs: Traversable[X]) {
