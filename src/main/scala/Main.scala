@@ -2,6 +2,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import com.github.tototoshi.csv.{CSVReader, CSVWriter}
 import org.sameersingh.scalaplot.Implicits._
 import org.sameersingh.scalaplot.{XYData, XYSeries}
+import scala.sys.process._
 
 object Main {
 
@@ -14,9 +15,9 @@ object Main {
             "col" -> -1
         ))*/
         //runExperimentOutliers(List(training), List(testing), "snmpguess")
-        runExperimentColCompare(ChemblDataLoader)
-        //runExperimentMicrobench(runCL = true, runNH = true, runARL = true)
-        //runExperimentParallel()
+        //runExperimentColCompare(ChemblDataLoader)
+        //runExperimentMicrobench(runCL = false, runNH = false, runARL = false, runCompare = true)
+        runExperimentParallel()
     }
 
     def runExperimentOutliers(trainings: Seq[Stream[(List[String], String)]], testings: Seq[Stream[(List[String], String)]], name: String) : Unit = {
@@ -116,16 +117,16 @@ object Main {
         )
         val (positives: Set[(Int,Int)], negatives: Set[(Int, Int)]) = loader.loadGroundTruth(newParams + ("threshold" -> 0.1))
         val xs: Seq[XStruct] = learnStructs(table)
-        compareColsLSH(positives, negatives, xs)
-        //val seriesAllPairs: XYSeries = compareColsAllPairs(positives, negatives, xs)
+        //compareColsLSH(positives, negatives, xs)
+        val seriesAllPairs: XYSeries = compareColsAllPairs(positives, negatives, xs)
 
-        /*Utils.plotSeries(
+        Utils.plotSeries(
             Map("" -> seriesAllPairs),
             "graphs/",
             "column_sim_fake",
             Axis("Recall", range = (0.0,1.01)),
             Axis("Precision", range = (0.0,1.01))
-        )*/
+        )
     }
 
     def runTimedExperiment(inputVals: Seq[Int], testLoader:Int=>Stream[String], imageName: String, xAxisTitle: String): Unit = {
@@ -151,7 +152,30 @@ object Main {
         )
     }
 
-    def runExperimentMicrobench(runCL: Boolean, runNH: Boolean, runARL: Boolean): Unit = {
+    def runTimedComparisons(inputVals: Seq[Int], testLoader:Int=>List[Stream[String]], path: String, method: Int = 0): Unit = {
+        val stats: Seq[Seq[Double]] = inputVals.map(iv => {
+            val times = (1 to 10).map(_ => {
+                val test: List[Stream[String]] = MicrobenchLoader.loadComparisonData(iv)
+                val xs: List[XStruct] = test.map(new XStruct().addNewLines(_))
+                val initialTime: Long = System.nanoTime()
+                if(method == 0) { // All-pairs
+                    (0 until xs.length).map(i => (1 to i).map(j => XStruct.compareTwo(xs(i), xs(j))))
+                } else if (method == 1) { // Min-hash
+                    val generators : Seq[Stream[String]] = xs.map(x => Stream.continually(x.minHashStringGenerator).flatten)
+                    val writer = CSVWriter.open(path + "genStrings.csv")
+                    (0 until 1000).foreach(
+                        i => writer.writeRow(generators.map(_.apply(i)))
+                    )
+                    ("python " + path + "lsh.py 0.5 " + path + "genStrings.csv").!
+                }
+                System.nanoTime() - initialTime
+            })
+            Utils.calcPercentiles(times, List(0.5, 0.95, 0.99)).map(Utils.nsToS)
+        })
+        print(stats.toString())
+    }
+
+    def runExperimentMicrobench(runCL: Boolean, runNH: Boolean, runARL: Boolean, runCompare: Boolean): Unit = {
         if (runCL) runTimedExperiment(
             List(100,200,500,1000,2500,5000,7000,10000),
             MicrobenchLoader.loadSpeedData,
@@ -170,19 +194,24 @@ object Main {
             "mb_avg_row_length",
             "Average Row Length"
         )
+        if (runCompare) runTimedComparisons(
+            List(2,5,10,20,30),
+            MicrobenchLoader.loadComparisonData,
+            "/Users/ailyas/Documents/Datasets/LSH/",
+            method = 1
+        )
     }
 
     def runExperimentParallel(): Unit = {
         val system: ActorSystem = ActorSystem("XStructSystem")
-        val numGroups: List[Int] = List(5)
-        val column: List[String] = CSVReader.open("/Users/ailyas/Documents/Datasets/Parallel/test.csv").all().transpose.head.take(20000)
+        val numGroups: List[Int] = List(3)
+        val column: List[String] = CSVReader.open("/Users/ailyas/Documents/Datasets/Parallel/test.csv").all().transpose.head.take(20)
         numGroups.foreach((ng: Int) => {
             val groupedColumn: List[List[String]] = column.grouped(column.length/ng).toList
             val groupedStreams: List[Stream[String]] = groupedColumn.map(_.toStream)
             val consolidator: ActorRef = system.actorOf(Consolidator.props(ng))
             val learners: Seq[ActorRef] = (1 to ng).map(_ => system.actorOf(ParLearner.props(consolidator)))
             (0 until ng).foreach(i => learners(i) ! groupedStreams(i))
-
         })
     }
 

@@ -10,9 +10,9 @@ set xlabel "Number of Hinges"
 set ylabel "Time (s)"
 # XYData Plotting
 plot \
-'data/num_hinges_50.data'  using 1:2 title "50th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 1 , \
-'data/num_hinges_50.data'  using 1:2 title "95th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 2, \
-'data/num_hinges_50.data'  using 1:2 title "99th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 3.000000 dashtype 3
+'data/num_hinges_50.data'  using 1:2 title "50th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 7 dashtype 1 , \
+'data/num_hinges_50.data'  using 1:2 title "95th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 7 dashtype 2, \
+'data/num_hinges_50.data'  using 1:2 title "99th %ile" with linespoints pointsize 1.000000 pointtype 7 linewidth 7 dashtype 3
 
 unset output
 # Wrapup

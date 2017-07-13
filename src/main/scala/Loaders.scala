@@ -112,6 +112,11 @@ object MicrobenchLoader {
   def loadAvgRowLengthData(avgLen: Int): Stream[String] = (1 to 1000).toStream.map(_ => {
     (1 to avgLen).map(_ => Random.nextPrintableChar()).mkString("")
   })
+
+  def loadComparisonData(numCols: Int): List[Stream[String]] = (1 to numCols).map(
+    i => CSVReader.open(dataPath + "Comparison/MOCK_DATA.csv")
+      .toStream.map(row => row(i % row.length))
+  ).toList
 }
 
 object FakeDataLoader extends ColCompareDataLoader {

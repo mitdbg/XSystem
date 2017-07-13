@@ -16,7 +16,7 @@ case object LCC extends CharClass { val (rep, toXClass, domain) = ("\\w", X_LCC,
 case object NUM extends CharClass { val (rep, toXClass, domain) = ("\\d", X_NUM, Config.numbers ) }
 case class SPC(c: String) extends CharClass {
   val realC: String = if(!Config.specChars.contains(c.toString)) {
-    println(c.toString)
+    //println(c.toString)
     "*"
   } else c
   val (rep, toXClass, domain) = (realC, X_SPEC(realC), realC.toCharArray.toSet)

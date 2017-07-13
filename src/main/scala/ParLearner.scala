@@ -24,17 +24,25 @@ object Consolidator {
 }
 
 class Consolidator(numExpected: Int) extends Actor {
-  var structs : List[XStruct] = List()
+  var struct : XStruct = null
   val log = Logging(context.system, this)
   val startTime: Long = System.nanoTime()
+  var numReceived: Int = 0
 
   def receive = {
+
     case (x: XStruct) => {
-      structs = structs :+ x
-      if(structs.length == numExpected) {
-        log.info("A " + System.nanoTime().toString)
-        val consolidated: XStruct = XStruct.mergeMultiple(structs)
-        log.info(System.nanoTime().toString)
+      numReceived += 1
+      struct = if(struct == null) {
+        x
+      } else {
+        struct.mergeWith(x)
+      }
+      //structs = structs :+ x
+      if(numReceived == numExpected) {
+        //log.info("A " + System.nanoTime().toString)
+        //val consolidated: XStruct = XStruct.mergeMultiple(structs)
+        log.info("DONE " + System.nanoTime().toString + " " + struct.toString)
         context.stop(context.actorOf(Props.empty, "killer"))
       }
     }
