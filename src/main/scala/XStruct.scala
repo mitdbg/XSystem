@@ -28,7 +28,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             _branches + (b.learnString(line) -> (_branches(b) + 1.toLong)) - b,
             branchingThreshold,
             history :+ (if (_branches.size == branches.size) score else 0.0)
-        ).trim, (history.length + 1) % Config.inc == 0 && Config.neededSampleSize(Vec(history : _*).stdev) < history.length)
+        ).trim(), (history.length + 1) % Config.inc == 0 && Config.neededSampleSize(Vec(history : _*).stdev) < history.length)
     }
 
     private def newBranch(str: String): (Map[BranchStruct,Long], BranchStruct) = {
@@ -44,7 +44,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
     }
 
     // Merge back
-    private def trim: XStruct = if (branches.size <= Config.maxBranches) this else {
+    private def trim(numTimes: Int = 1): XStruct = (if (branches.size <= Config.maxBranches) this else {
         val distanceMeasure = (x: (BranchStruct, BranchStruct)) => x._1.supersetScore(x._2)
         val distanceMatrix: Map[(BranchStruct,BranchStruct),Double] = branches.keys.cross(branches.keys).map(
             x => (x, distanceMeasure(x))
@@ -59,6 +59,9 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             _bThresh = Math.max(minDist, branchingThreshold+0.01),
             List[Double]()
         )
+    }, numTimes) match {
+        case (x, 1) => x
+        case (x, n) => x.trim(n-1)
     }
 
     def generateStrings: Stream[String] = {
@@ -85,7 +88,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
         this.branches ++ other.branches,
         0.0,
         List()
-    ).trim
+    ).trim(this.branches.size - Config.maxBranches)
 
     override def toString: String = branches.map(_.toString).mkString("|")
 
