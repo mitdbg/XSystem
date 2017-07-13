@@ -61,7 +61,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             _bThresh = Math.max(minDist, branchingThreshold+0.01),
             List[Double]()
         )
-        (x, distanceMatrix, numTimes)
+        (x, distanceMatrix - minCoords, numTimes)
     } match {
         case (x: XStruct, _, 1) => x
         case (x: XStruct, y: Map[(BranchStruct,BranchStruct),Double], _) => x.trim(numTimes-1, y)
