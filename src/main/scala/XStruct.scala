@@ -64,7 +64,7 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
             ), distanceMatrix)
     }, numTimes) match {
         case ((x: XStruct, _), 1) => x
-        case ((x: XStruct, y), _) => x.trim(numTimes-1, y)
+        case ((x: XStruct, y: Map[(BranchStruct,BranchStruct),Double]), _) => x.trim(numTimes-1, y)
     }
 
 
