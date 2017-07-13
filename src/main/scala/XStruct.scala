@@ -44,27 +44,27 @@ class XStruct(_lines: List[String], _branches: Map[BranchStruct,Long], _bThresh:
     }
 
     // Merge back
-    private def trim(numTimes: Int = 1, _dm: Map[(BranchStruct,BranchStruct),Double] = null): XStruct = (if (branches.size <= Config.maxBranches) this else {
-            val distanceMatrix: Map[(BranchStruct,BranchStruct),Double] = if (_dm == null) {
-                val distanceMeasure = (x: (BranchStruct, BranchStruct)) => x._1.supersetScore(x._2)
-                branches.keys.cross(branches.keys).map(
-                    x => (x, distanceMeasure(x))
-                ).toMap
-            } else _dm
-
-            val (minCoords: (BranchStruct, BranchStruct), minDist: Double) = distanceMatrix.filterKeys(x => x._1 != x._2).minBy(_._2)
-            //println("Trimming")
-            (new XStruct(
-                lines,
-                branches
-                  + ((BranchStruct.merged _).tupled(minCoords) -> (branches(minCoords._1)+branches(minCoords._2)))
-                  - minCoords._1 - minCoords._2,
-                _bThresh = Math.max(minDist, branchingThreshold+0.01),
-                List[Double]()
-            ), distanceMatrix)
-    }, numTimes) match {
-        case ((x: XStruct, _), 1) => x
-        case ((x: XStruct, y: Map[(BranchStruct,BranchStruct),Double]), _) => x.trim(numTimes-1, y)
+    private def trim(numTimes: Int = 1, _dm: Map[(BranchStruct,BranchStruct),Double] = null): XStruct = if (branches.size <= Config.maxBranches) this else {
+        val distanceMatrix: Map[(BranchStruct,BranchStruct),Double] = if (_dm == null) {
+            val distanceMeasure = (x: (BranchStruct, BranchStruct)) => x._1.supersetScore(x._2)
+            branches.keys.cross(branches.keys).map(
+                x => (x, distanceMeasure(x))
+            ).toMap
+        } else _dm
+        val (minCoords: (BranchStruct, BranchStruct), minDist: Double) = distanceMatrix.filterKeys(x => x._1 != x._2).minBy(_._2)
+        //println("Trimming")
+        val x: XStruct = new XStruct(
+            lines,
+            branches
+              + ((BranchStruct.merged _).tupled(minCoords) -> (branches(minCoords._1)+branches(minCoords._2)))
+              - minCoords._1 - minCoords._2,
+            _bThresh = Math.max(minDist, branchingThreshold+0.01),
+            List[Double]()
+        )
+        (x, distanceMatrix, numTimes)
+    } match {
+        case (x: XStruct, _, 1) => x
+        case (x: XStruct, y: Map[(BranchStruct,BranchStruct),Double], _) => x.trim(numTimes-1, y)
     }
 
 
